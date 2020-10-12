@@ -40,8 +40,8 @@ public class RaftNode {
         LEADER
     }
 
-    private static final int BROADCAST_PORT = 6788;
-    private static final int MESSAGE_PORT = 6789;
+    public static final int BROADCAST_PORT = 6788;
+    public static final int MESSAGE_PORT = 6789;
 
     /**
      * Attributes
