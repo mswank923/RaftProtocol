@@ -1,0 +1,9 @@
+Steps
+
+1. Separate RaftNode attributes out to a new PeerNode class
+
+2. Process broadcast data (addresses)
+
+3. Implement Heartbeat
+
+4. Implement leader election.
