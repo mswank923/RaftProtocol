@@ -40,6 +40,8 @@ public class RaftNode {
         LEADER
     }
 
+    private static final int BROADCAST_PORT = 6788;
+    private static final int MESSAGE_PORT = 6789;
 
     /**
      * Attributes
@@ -57,8 +59,12 @@ public class RaftNode {
     public static void main(String[] args) {
         RaftNode thisNode = new RaftNode();
 
-        PassiveMessageThread passiveThread = new PassiveMessageThread(thisNode);
-        passiveThread.start();
+        // Begin broadcasting
+        BroadcastActiveThread broadcastActiveThread = new BroadcastActiveThread(thisNode);
+        broadcastActiveThread.start();
+
+        PassiveMessageThread passiveMessageThread = new PassiveMessageThread(thisNode);
+        passiveMessageThread.start();
 
         ActiveMessageThread activeThread = new ActiveMessageThread(thisNode);
         activeThread.start();
