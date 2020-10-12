@@ -3,8 +3,10 @@
  */
 public class PassiveMessageThread extends Thread {
 
-    public PassiveMessageThread() {
+    private RaftNode node;
 
+    public PassiveMessageThread(RaftNode node) {
+        this.node = node;
     }
 
     @Override
