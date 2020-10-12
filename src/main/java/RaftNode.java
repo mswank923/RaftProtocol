@@ -1,3 +1,4 @@
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -55,6 +56,12 @@ public class RaftNode {
     private RaftNode myLeader;              // Who is this node's leader
     private ArrayList<RaftNode> peerNodes;  // List of other nodes in the protocol
     private Date lastUpdated;               // The last time that this node was heard from
+    private InetAddress address;            // The address of this node
+
+
+    public InetAddress getAddress(){
+        return this.getAddress();
+    }
 
     public static void main(String[] args) {
         RaftNode thisNode = new RaftNode();

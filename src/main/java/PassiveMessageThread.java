@@ -1,5 +1,4 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -18,12 +17,14 @@ public class PassiveMessageThread extends Thread {
     public void run() {
         while (true) {
             try (
-                ServerSocket listener = new ServerSocket(node.GOSSIP_PORT);
-                Socket socket = listener.accept();
-                DataInputStream input = new DataInputStream(socket.getInputStream());
-                DataOutputStream output = new DataOutputStream(socket.getOutputStream())
+                    ServerSocket listener = new ServerSocket(node.MESSAGE_PORT);
+                    Socket socket = listener.accept();
+                    ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
+                    ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())
             ) {
-                // do stuff
+                Message msg = (Message) input.readObject();
+            }catch(IOException e){
+                e.printStackTrace();
             }
         }
     }
