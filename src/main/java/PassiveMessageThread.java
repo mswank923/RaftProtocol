@@ -3,6 +3,10 @@
  */
 public class PassiveMessageThread extends Thread {
 
+    public PassiveMessageThread() {
+
+    }
+
     @Override
     public void run() {
 

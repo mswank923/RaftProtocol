@@ -28,6 +28,10 @@ public class RaftNode {
     private Date lastUpdated;               // The last time that this node was heard from
 
     public static void main(String[] args) {
+        PassiveMessageThread passiveThread = new PassiveMessageThread();
+        passiveThread.start();
 
+        ActiveMessageThread activeThread = new ActiveMessageThread();
+        activeThread.start();
     }
 }
