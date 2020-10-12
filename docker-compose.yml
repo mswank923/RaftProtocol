@@ -1,0 +1,82 @@
+# Test this without rebuilding the docker image $> docker-compose up
+# Test this with rebuilding the docker image $> docker-compose up --build
+
+version: '3.7'
+
+services:
+  peer1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: csci251:latest
+    container_name: peer1
+    working_dir: /csci251
+    networks:
+      - csci251network
+    ports:
+      - 9091
+      - 9092
+      - 9093
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "Initialize peer1...done!"
+        tail -f /dev/null
+
+
+  peer2:
+    image: csci251:latest
+    container_name: peer2
+    depends_on:
+      - peer1
+    working_dir: /csci251
+    networks:
+      - csci251network
+    ports:
+      - 9091
+      - 9092
+      - 9093
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "Initialize peer2...done!"
+        tail -f /dev/null
+
+  rmiserver:
+    image: csci251:latest
+    container_name: rmiserver
+    depends_on:
+      - peer1
+    working_dir: /csci251/remote_method_invocation
+    networks:
+      - csci251network
+    ports:
+      - 1099
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "Initialize rmiserver...done!"
+        tail -f /dev/null
+
+  rmiclient:
+    image: csci251:latest
+    container_name: rmiclient
+    depends_on:
+      - rmiserver
+    working_dir: /csci251/remote_method_invocation
+    networks:
+    - csci251network
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "Initialize rmiclient...done!"
+        tail -f /dev/null
+
+
+
+networks:
+  csci251network:
