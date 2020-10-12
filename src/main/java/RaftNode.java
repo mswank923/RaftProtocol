@@ -27,5 +27,7 @@ public class RaftNode {
     private ArrayList<RaftNode> peerNodes;  // List of other nodes in the protocol
     private Date lastUpdated;               // The last time that this node was heard from
 
+    public static void main(String[] args) {
 
+    }
 }
