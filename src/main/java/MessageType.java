@@ -1,0 +1,11 @@
+public enum MessageType {
+    HEARTBEAT,
+
+    VOTE_REQUEST,
+
+    VOTE_RESPONSE,
+
+    APPEND_ENTRIES,
+
+    APPEND_ENTRIES_RESPONSE
+}
