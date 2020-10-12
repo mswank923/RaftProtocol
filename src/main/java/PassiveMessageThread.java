@@ -23,7 +23,8 @@ public class PassiveMessageThread extends Thread {
                     ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())
             ) {
                 Message msg = (Message) input.readObject();
-            }catch(IOException e){
+                //TODO
+            }catch(IOException | ClassNotFoundException e){
                 e.printStackTrace();
             }
         }
