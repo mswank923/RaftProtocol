@@ -39,7 +39,7 @@ public class BroadcastActiveThread extends Thread {
             socket.setBroadcast(true);
 
             InetAddress destination = InetAddress.getByName("255.255.255.255");
-            String message = InetAddress.getLocalHost().getHostAddress();
+            String message = node.getAddress().getHostAddress();
 
             while (true) {
                 broadcast(destination, message, socket);
