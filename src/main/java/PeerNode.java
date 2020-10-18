@@ -1,4 +1,5 @@
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Date;
 
 /**
@@ -12,29 +13,29 @@ public class PeerNode {
     //  Attributes  //
     //////////////////
 
-    private int id;
-    private RaftNode.NodeType type;
+    private NodeType type;
     private boolean hasVoted;
     private Date lastUpdated;
     private InetAddress address;
+
+    public PeerNode(String address) {
+        this.type = NodeType.FOLLOWER;
+        this.hasVoted = false;
+        this.lastUpdated = new Date();
+        try {
+            this.address = InetAddress.getByName(address);
+        } catch (UnknownHostException e) { e.printStackTrace(); }
+    }
 
     ///////////////////////////
     //  Getters and Setters  //
     ///////////////////////////
 
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public RaftNode.NodeType getType() {
+    public NodeType getType() {
         return type;
     }
 
-    public void setType(RaftNode.NodeType type) {
+    public void setType(NodeType type) {
         this.type = type;
     }
 
@@ -62,4 +63,7 @@ public class PeerNode {
         this.address = address;
     }
 
+    public boolean addressEquals(String address) {
+        return this.address.getHostAddress().equals(address);
+    }
 }
