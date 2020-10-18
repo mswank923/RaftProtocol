@@ -30,6 +30,11 @@ public class BroadcastPassiveThread extends Thread {
 
     private void process(String message) {
         // message is the IP address that belongs to a peer node (or this node)
+        PeerNode peer = node.getPeer(message);
+        if (peer == null) {
+            PeerNode newPeer = new PeerNode(message);
+            node.addNewPeer(newPeer);
+        }
     }
 
     @Override
