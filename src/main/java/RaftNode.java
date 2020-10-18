@@ -40,7 +40,15 @@ public class RaftNode {
     }
 
 
-    public InetAddress getAddress() { return this.getAddress(); }
+    InetAddress getAddress() { return this.address; }
+
+    boolean hasVoted(){
+        return this.hasVoted;
+    }
+
+    void setHasVoted(boolean voted){
+        this.hasVoted = voted;
+    }
 
     /**
      * Fetch a PeerNode based on an address.

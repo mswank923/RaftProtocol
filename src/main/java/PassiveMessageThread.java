@@ -1,4 +1,5 @@
 import java.io.*;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -11,6 +12,40 @@ public class PassiveMessageThread extends Thread {
 
     public PassiveMessageThread(RaftNode node) {
         this.node = node;
+    }
+
+    public void reply(ObjectOutputStream out, Message msgReceived){
+        MessageType messageType = msgReceived.getType();
+        Object data = msgReceived.getData();
+        try {
+            switch (messageType) {
+                case HEARTBEAT:
+                    //Do something
+                    break;
+                case VOTE_REQUEST:
+                    if (data instanceof InetAddress) {
+                        if (node.hasVoted()) {
+                            out.writeObject(false);
+                        }
+                        else{
+                            out.writeObject(true);
+                            node.setHasVoted(true);
+                        }
+                    }
+                    break;
+                case VOTE_RESPONSE:
+                    //Do something
+                    break;
+                case APPEND_ENTRIES:
+                    //Do something
+                    break;
+                case APPEND_ENTRIES_RESPONSE:
+                    //Do something
+                    break;
+            }
+        }catch(IOException e){
+            e.printStackTrace();
+        }
     }
 
     @Override
