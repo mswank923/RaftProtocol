@@ -1,3 +1,4 @@
+import java.net.InetAddress;
 import java.util.Date;
 
 /**
@@ -15,6 +16,7 @@ public class PeerNode {
     private RaftNode.NodeType type;
     private boolean hasVoted;
     private Date lastUpdated;
+    private InetAddress address;
 
     ///////////////////////////
     //  Getters and Setters  //
@@ -51,4 +53,13 @@ public class PeerNode {
     public void setLastUpdated(Date lastUpdated) {
         this.lastUpdated = lastUpdated;
     }
+
+    public InetAddress getAddress() {
+        return address;
+    }
+
+    public void setAddress(InetAddress address) {
+        this.address = address;
+    }
+
 }
