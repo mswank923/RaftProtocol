@@ -1,9 +1,10 @@
 Steps
 
-1. Separate RaftNode attributes out to a new PeerNode class
+1. Implement Heartbeat
+  a. Add last updated attribute
+  b. When receiving message from a leader or candidate, refresh our last updated to current time.
 
-2. Process broadcast data (addresses)
-
-3. Implement Heartbeat
-
-4. Implement leader election.
+2. Implement leader election.
+  a. RaftNode becomes candidate
+  b. RaftNode sends vote requests to each peer.
+  c. When new leader is recognized, randomize the election timeout.

@@ -1,4 +1,8 @@
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -15,6 +19,7 @@ public class RaftNode {
      * Attributes
      */
     private int term;                       // The current term we are in
+
     private NodeType type;                  // The type of node this is
     private int voteCount;                  // How many votes does this node have (used for candidate nodes)
     private boolean hasVoted;               // Has this node already voted (for leader election)
@@ -22,6 +27,8 @@ public class RaftNode {
     private PeerNode myLeader;              // Who is this node's leader
     private ArrayList<PeerNode> peerNodes;  // List of other nodes in the protocol
     private InetAddress address;            // The address of this node
+
+    private Date lastElectionUpdate;
 
     /**
      * Constructor for the local node that sets its initial values.
@@ -37,8 +44,13 @@ public class RaftNode {
         try {
             this.address = InetAddress.getLocalHost();
         } catch (UnknownHostException e) { e.printStackTrace(); }
+
+        this.lastElectionUpdate = new Date();
     }
 
+    public NodeType getType() {
+        return type;
+    }
 
     InetAddress getAddress() { return this.address; }
 
@@ -71,10 +83,36 @@ public class RaftNode {
         peerNodes.add(peer);
     }
 
+    /**
+     * Send a heartbeat message to all of our peers.
+     */
+    synchronized void sendHeartbeat() {
+        for (PeerNode peer : peerNodes) {
+            Message message = new Message(MessageType.HEARTBEAT, this.address);
+            // Send the message
+            sendMessage(peer, message);
+        }
+    }
+
+    /**
+     * Open a socket and send the message to the peer.
+     * @param peer Destination Peer.
+     * @param message Message to send.
+     */
+    void sendMessage(PeerNode peer, Message message) {
+        try (Socket socket = new Socket()) {
+            InetSocketAddress destination = new InetSocketAddress(peer.getAddress(), MESSAGE_PORT);
+            socket.connect(destination, 10000);
+
+            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+            out.writeObject(message);
+        } catch (IOException e) { e.printStackTrace(); }
+    }
+
     public static void main(String[] args) {
         RaftNode thisNode = new RaftNode();
 
-        // Begin broadcasting
+        // Start broadcasting
         BroadcastActiveThread broadcastActiveThread = new BroadcastActiveThread(thisNode);
         broadcastActiveThread.start();
 
@@ -82,6 +120,7 @@ public class RaftNode {
         BroadcastPassiveThread broadcastPassiveThread = new BroadcastPassiveThread(thisNode);
         broadcastPassiveThread.start();
 
+        //
         PassiveMessageThread passiveMessageThread = new PassiveMessageThread(thisNode);
         passiveMessageThread.start();
 
@@ -93,6 +132,9 @@ public class RaftNode {
 
         // Main loop checks for heartbeat & initiates leader election
         while (true) {
+            // if now - (last election update) > election timeout
+            // then start leader election (become candidate)
+
             //
         }
     }

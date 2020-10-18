@@ -17,19 +17,16 @@ public class ActiveMessageThread extends Thread {
         this.node = node;
     }
 
-    private void sendTo(RaftNode peer, Message msg){
-        try(Socket socket = new Socket()){
-            InetSocketAddress destination = new InetSocketAddress(peer.getAddress(), node.MESSAGE_PORT);
-            socket.connect(destination, 10000);
-            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            out.writeObject(msg);
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-    }
-
     @Override
     public void run() {
-
+        while (true) {
+            // If we are leader, we send heartbeat to each Peer every 2 seconds
+            if (node.getType().equals(NodeType.LEADER)) {
+                node.sendHeartbeat();
+                try {
+                    sleep(2000);
+                } catch (InterruptedException ignored) { }
+            }
+        }
     }
 }
