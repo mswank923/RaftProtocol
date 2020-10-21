@@ -27,7 +27,7 @@ public class PassiveMessageThread extends Thread {
                         if (node.hasVoted()) {
                             out.writeObject(false);
                         }
-                        else{
+                        else {
                             out.writeObject(true);
                             node.setHasVoted(true);
                         }

@@ -21,14 +21,14 @@ public class RaftNode {
     private int term;                       // The current term we are in
 
     private NodeType type;                  // The type of node this is
-    private int voteCount;                  // How many votes does this node have (used for candidate nodes)
-    private boolean hasVoted;               // Has this node already voted (for leader election)
-                                            // Note: Candidate's vote for themselves
-    private PeerNode myLeader;              // Who is this node's leader
     private ArrayList<PeerNode> peerNodes;  // List of other nodes in the protocol
+    private PeerNode myLeader;              // Who is this node's leader
     private InetAddress address;            // The address of this node
 
-    private Date lastElectionUpdate;
+    private boolean hasVoted;               // Has this node already voted (for leader election)
+    private int voteCount;                  // How many votes does this node have (used for candidate nodes)
+
+    private int electionTimeout;
 
     /**
      * Constructor for the local node that sets its initial values.
@@ -44,8 +44,6 @@ public class RaftNode {
         try {
             this.address = InetAddress.getLocalHost();
         } catch (UnknownHostException e) { e.printStackTrace(); }
-
-        this.lastElectionUpdate = new Date();
     }
 
     public NodeType getType() {
@@ -53,6 +51,10 @@ public class RaftNode {
     }
 
     InetAddress getAddress() { return this.address; }
+    int getVoteCount() { return this.voteCount; }
+    synchronized int getPeerCount() { return this.peerNodes.size(); }
+
+    void setType(NodeType type) { this.type = type; }
 
     boolean hasVoted(){
         return this.hasVoted;
@@ -95,13 +97,14 @@ public class RaftNode {
     synchronized void requestVotes() {
         Message message = new Message(MessageType.VOTE_REQUEST, this.address);
         for (PeerNode peer : peerNodes)
-            sendMessage(peer, message);
+            if (!peer.hasVoted())
+                sendMessage(peer, message);
     }
 
     boolean leaderIsMissing() {
         long lastUpdateTime = myLeader.getLastUpdated().getTime();
         long now = new Date().getTime();
-        return now - lastUpdateTime > 10000;
+        return now - lastUpdateTime > electionTimeout;
     }
 
     synchronized void leaderElection() {

@@ -28,8 +28,11 @@ public class ActiveMessageThread extends Thread {
                     sleep(2000);
                 } catch (InterruptedException ignored) { }
             } else if (type.equals(NodeType.CANDIDATE)) {
-                // If we are candidate, send vote request to each Peer
+                // If we are candidate, send vote request to each Peer that has not voted
                 node.requestVotes();
+                if (node.getVoteCount() + 1 >= node.getPeerCount() / 2 + 1) {
+                    node.setType(NodeType.LEADER);
+                }
             }
         }
     }
