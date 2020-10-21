@@ -3,9 +3,7 @@ import java.net.UnknownHostException;
 import java.util.Date;
 
 /**
- * A PeerNode represents a neighbor of a RaftNode
- * There is no need for the neighbors of a
- * raft node to have so many attributes to them.
+ * A PeerNode represents a neighbor of a RaftNode. A list of PeerNodes are stored by the RaftNode.
  */
 public class PeerNode {
 
@@ -18,13 +16,26 @@ public class PeerNode {
     private Date lastUpdated;
     private InetAddress address;
 
-    public PeerNode(String address) {
+    PeerNode(String address) {
         this.type = NodeType.FOLLOWER;
         this.hasVoted = false;
         this.lastUpdated = new Date();
         try {
             this.address = InetAddress.getByName(address);
         } catch (UnknownHostException e) { e.printStackTrace(); }
+    }
+
+    public void update() {
+        this.lastUpdated = new Date();
+    }
+
+    public void update(NodeType newType) {
+        this.type = newType;
+        this.update();
+    }
+
+    public void resetVote() {
+        this.hasVoted = false;
     }
 
     ///////////////////////////

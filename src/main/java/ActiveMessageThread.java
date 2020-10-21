@@ -20,12 +20,16 @@ public class ActiveMessageThread extends Thread {
     @Override
     public void run() {
         while (true) {
-            // If we are leader, we send heartbeat to each Peer every 2 seconds
-            if (node.getType().equals(NodeType.LEADER)) {
+            NodeType type = node.getType();
+            if (type.equals(NodeType.LEADER)) {
+                // If we are leader, we send heartbeat to each Peer every 2 seconds
                 node.sendHeartbeat();
                 try {
                     sleep(2000);
                 } catch (InterruptedException ignored) { }
+            } else if (type.equals(NodeType.CANDIDATE)) {
+                // If we are candidate, send vote request to each Peer
+                node.requestVotes();
             }
         }
     }

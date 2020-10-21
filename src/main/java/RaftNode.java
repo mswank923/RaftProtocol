@@ -87,12 +87,32 @@ public class RaftNode {
      * Send a heartbeat message to all of our peers.
      */
     synchronized void sendHeartbeat() {
-        for (PeerNode peer : peerNodes) {
-            Message message = new Message(MessageType.HEARTBEAT, this.address);
-            // Send the message
+        Message message = new Message(MessageType.HEARTBEAT, this.address);
+        for (PeerNode peer : peerNodes)
             sendMessage(peer, message);
-        }
     }
+
+    synchronized void requestVotes() {
+        Message message = new Message(MessageType.VOTE_REQUEST, this.address);
+        for (PeerNode peer : peerNodes)
+            sendMessage(peer, message);
+    }
+
+    boolean leaderIsMissing() {
+        long lastUpdateTime = myLeader.getLastUpdated().getTime();
+        long now = new Date().getTime();
+        return now - lastUpdateTime > 10000;
+    }
+
+    synchronized void leaderElection() {
+        this.type = NodeType.CANDIDATE;
+        this.term += 1;
+
+        // Set all peer hasVoted attributes to false
+        for (PeerNode peer : peerNodes)
+            peer.resetVote();
+    }
+
 
     /**
      * Open a socket and send the message to the peer.
@@ -120,10 +140,11 @@ public class RaftNode {
         BroadcastPassiveThread broadcastPassiveThread = new BroadcastPassiveThread(thisNode);
         broadcastPassiveThread.start();
 
-        //
+        // Receive messages
         PassiveMessageThread passiveMessageThread = new PassiveMessageThread(thisNode);
         passiveMessageThread.start();
 
+        // Start messaging
         ActiveMessageThread activeMessageThread = new ActiveMessageThread(thisNode);
         activeMessageThread.start();
 
@@ -132,10 +153,15 @@ public class RaftNode {
 
         // Main loop checks for heartbeat & initiates leader election
         while (true) {
-            // if now - (last election update) > election timeout
-            // then start leader election (become candidate)
+            // Check for missing leader
+            if (thisNode.type == NodeType.FOLLOWER && thisNode.leaderIsMissing()) {
+                // elect a leader
+                thisNode.leaderElection();
+            }
 
-            //
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ignored) { }
         }
     }
 }

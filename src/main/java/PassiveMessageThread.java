@@ -10,7 +10,7 @@ public class PassiveMessageThread extends Thread {
 
     private RaftNode node;
 
-    public PassiveMessageThread(RaftNode node) {
+    PassiveMessageThread(RaftNode node) {
         this.node = node;
     }
 
@@ -43,9 +43,7 @@ public class PassiveMessageThread extends Thread {
                     //Do something
                     break;
             }
-        }catch(IOException e){
-            e.printStackTrace();
-        }
+        } catch (IOException e){ e.printStackTrace(); }
     }
 
     @Override
@@ -57,11 +55,20 @@ public class PassiveMessageThread extends Thread {
                     ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
                     ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())
             ) {
-                Message msg = (Message) input.readObject();
-                //TODO
-            }catch(IOException | ClassNotFoundException e){
-                e.printStackTrace();
-            }
+                Message message = (Message) input.readObject();
+                MessageType type = message.getType();
+                Object data = message.getData();
+
+                switch(type) {
+                    case HEARTBEAT:
+                        InetAddress leaderAddress = (InetAddress) data;
+                        PeerNode sender = node.getPeer(leaderAddress.getHostAddress());
+                        sender.update();
+                        break;
+                }
+
+                // TODO
+            } catch (IOException | ClassNotFoundException e){ e.printStackTrace(); }
         }
     }
 }
