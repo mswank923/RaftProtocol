@@ -9,13 +9,15 @@ Steps
   b. RaftNode sends vote requests to each peer.
   c. When new leader is recognized, randomize the election timeout.
 
-  TODO:
-  1. if votes are tied and no more peers can vote, begin new election cycle from the start
-  2. HEARTBEAT messages don't exist, they are merely APPEND_ENTRIES messages with no content
 
-  3. Implement VOTE_REQUEST message handling in PassiveMessageThread
-  4. Implement APPEND_ENTRIES instead of heartbeat, and when a node receives this from a node that
+
+Added:
+  1. if votes are tied and no more peers can vote, begin new election cycle from the start
+
+  2. HEARTBEAT messages don't exist, they are merely APPEND_ENTRIES messages with no content
+      Implement VOTE_REQUEST message handling in PassiveMessageThread
+  3. Implement APPEND_ENTRIES instead of heartbeat, and when a node receives this from a node that
   is not its leader, then set leader to the node
 
-  5. at the start of a new election term, randomize the election timeout
+  4. at the start of a new election term, randomize the election timeout
 
