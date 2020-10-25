@@ -25,18 +25,6 @@ public class PeerNode {
         } catch (UnknownHostException e) { e.printStackTrace(); }
     }
 
-    public void update() {
-        this.lastUpdated = new Date();
-    }
-
-    public void update(NodeType newType) {
-        this.type = newType;
-        this.update();
-    }
-
-    public void resetVote() {
-        this.hasVoted = false;
-    }
 
     ///////////////////////////
     //  Getters and Setters  //
@@ -62,8 +50,17 @@ public class PeerNode {
         return lastUpdated;
     }
 
-    public void setLastUpdated(Date lastUpdated) {
-        this.lastUpdated = lastUpdated;
+    public void update() {
+        this.lastUpdated = new Date();
+    }
+
+    public void update(NodeType newType) {
+        this.type = newType;
+        this.update();
+    }
+
+    public void resetVote() {
+        this.hasVoted = false;
     }
 
     public InetAddress getAddress() {

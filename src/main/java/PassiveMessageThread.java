@@ -14,37 +14,6 @@ public class PassiveMessageThread extends Thread {
         this.node = node;
     }
 
-    public void reply(ObjectOutputStream out, Message msgReceived){
-        MessageType messageType = msgReceived.getType();
-        Object data = msgReceived.getData();
-        try {
-            switch (messageType) {
-                case HEARTBEAT:
-                    //Do something
-                    break;
-                case VOTE_REQUEST:
-                    if (data instanceof InetAddress) {
-                        if (node.hasVoted()) {
-                            out.writeObject(false);
-                        }
-                        else {
-                            out.writeObject(true);
-                            node.setHasVoted(true);
-                        }
-                    }
-                    break;
-                case VOTE_RESPONSE:
-                    //Do something
-                    break;
-                case APPEND_ENTRIES:
-                    //Do something
-                    break;
-                case APPEND_ENTRIES_RESPONSE:
-                    //Do something
-                    break;
-            }
-        } catch (IOException e){ e.printStackTrace(); }
-    }
 
     @Override
     public void run() {
@@ -64,6 +33,35 @@ public class PassiveMessageThread extends Thread {
                         InetAddress leaderAddress = (InetAddress) data;
                         PeerNode sender = node.getPeer(leaderAddress.getHostAddress());
                         sender.update();
+                        break;
+                    case VOTE_REQUEST:
+                        if (data instanceof InetAddress) {
+                            if (node.hasVoted()) {
+                                Message msg = new Message(MessageType.VOTE_RESPONSE, false);
+                                output.writeObject(msg);
+                            }
+                            else {
+                                Message msg = new Message(MessageType.VOTE_RESPONSE, true);
+                                output.writeObject(msg);
+                                node.setHasVoted(true);
+                            }
+                            //Reset node's election timeout
+                            node.resetTimeout();
+                        }
+                        break;
+                    case VOTE_RESPONSE:
+                        if (data instanceof Boolean){
+                            boolean votedForMe = (boolean) data;
+                            if(votedForMe){
+                                node.incrementVoteCount();
+                            }
+                        }
+                        break;
+                    case APPEND_ENTRIES:
+                        //Do something
+                        break;
+                    case APPEND_ENTRIES_RESPONSE:
+                        //Do something
                         break;
                 }
 

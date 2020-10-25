@@ -30,7 +30,7 @@ public class ActiveMessageThread extends Thread {
             } else if (type.equals(NodeType.CANDIDATE)) {
                 // If we are candidate, send vote request to each Peer that has not voted
                 node.requestVotes();
-                if (node.getVoteCount() + 1 >= node.getPeerCount() / 2 + 1) {
+                if (node.checkMajority()) {
                     node.setType(NodeType.LEADER);
                 }
             }
