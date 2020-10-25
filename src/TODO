@@ -5,7 +5,8 @@ Steps
   b. RaftNode sends vote requests to each peer.
   c. When new leader is recognized, randomize the election timeout.
 
-
+2. When fresh node starts, it will hit election timeout and begin leader election. Since other nodes
+already have a leader, once they receive REQUEST_VOTE Message they should respond with the correct leader.
 
 Added:
   1. if votes are tied and no more peers can vote, begin new election cycle from the start

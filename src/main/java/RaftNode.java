@@ -29,7 +29,7 @@ public class RaftNode {
     private int voteCount;                  // How many votes does this node have (used for candidate nodes)
 
     private Date lastUpdated;
-    private int electionTimeout;
+    private int electionTimeout;            // Timeout in milliseconds
 
     /**
      * Constructor for the local node that sets its initial values.
@@ -133,10 +133,11 @@ public class RaftNode {
      */
     boolean leaderIsMissing() {
         long now = new Date().getTime();
-        //Base Case (When we first start raft protocol)
-        if(myLeader == null || now > electionTimeout){
+
+        // Base Case (When we first start raft protocol)
+        if (myLeader == null || now > electionTimeout)
             return true;
-        }
+
         long lastUpdateTime = myLeader.getLastUpdated().getTime();
         return now - lastUpdateTime > electionTimeout;
     }
@@ -145,9 +146,20 @@ public class RaftNode {
      * Check to see if candidate node has majority votes
      * @return true if has majority votes, false otherwise
      */
-    boolean checkMajority(){
-        int half = (int) Math.floor(this.peerNodes.size()/2);
-        return this.voteCount + 1 >= half + 1;
+    boolean checkMajority() {
+        int majority = this.peerNodes.size() / 2 + 1;
+        return this.voteCount >= majority;
+    }
+
+    /**
+     * Check to see if the vote is stuck in a tie.
+     * @return true if we have gotten a VOTE_RESPONSE from every peer.
+     */
+    synchronized boolean checkTieVote() {
+        for (PeerNode peer : peerNodes)
+            if (!peer.hasVoted())
+                return false;
+        return true;
     }
 
     /**
@@ -157,13 +169,14 @@ public class RaftNode {
      */
     synchronized void leaderElection() {
         this.type = NodeType.CANDIDATE;
-        this.term += 1;
 
         // Set all peer hasVoted attributes to false
         for (PeerNode peer : peerNodes)
             peer.resetVote();
-    }
 
+        requestVotes();
+        voteCount++;
+    }
 
     /**
      * Open a socket and send the message to the peer.
@@ -204,8 +217,15 @@ public class RaftNode {
         while (true) {
             // Check for missing leader
             if (thisNode.type == NodeType.FOLLOWER && thisNode.leaderIsMissing()) {
-                // elect a leader
                 thisNode.leaderElection();
+            } else if (thisNode.type == NodeType.CANDIDATE) {
+                if (thisNode.checkMajority()) {
+                    thisNode.type = NodeType.LEADER;
+                    // TODO randomize electionTimeout
+                    thisNode.term += 1;
+                } else if (thisNode.checkTieVote()) {
+                    thisNode.leaderElection();
+                }
             }
 
             try {
