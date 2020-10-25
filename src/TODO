@@ -1,10 +1,6 @@
 Steps
 
-1. Implement Heartbeat
-  a. Add last updated attribute
-  b. When receiving message from a leader or candidate, refresh our last updated to current time.
-
-2. Implement leader election.
+1. Implement leader election.
   a. RaftNode becomes candidate
   b. RaftNode sends vote requests to each peer.
   c. When new leader is recognized, randomize the election timeout.
@@ -21,3 +17,6 @@ Added:
 
   4. at the start of a new election term, randomize the election timeout
 
+  5. Implement Heartbeat
+    a. Add last updated attribute
+    b. When receiving message from a leader or candidate, refresh our last updated to current time.

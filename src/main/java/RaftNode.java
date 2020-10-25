@@ -48,6 +48,10 @@ public class RaftNode {
         } catch (UnknownHostException e) { e.printStackTrace(); }
     }
 
+    //////////////////////////
+    //  Getters and Setters //
+    //////////////////////////
+
     public NodeType getType() {
         return type;
     }
@@ -72,6 +76,10 @@ public class RaftNode {
         this.voteCount++;
     }
 
+    /**
+     * Reset the last updated to current time for election timeout
+     * and heartbeat timeout
+     */
     void resetTimeout(){
         this.lastUpdated = new Date();
     }
@@ -106,6 +114,9 @@ public class RaftNode {
             sendMessage(peer, message);
     }
 
+    /**
+     * As candidate, send vote request message to peers
+     */
     synchronized void requestVotes() {
         Message message = new Message(MessageType.VOTE_REQUEST, this.address);
         //Update timeout
@@ -115,6 +126,11 @@ public class RaftNode {
                 sendMessage(peer, message);
     }
 
+    /**
+     * Check to see if node doesn't have a leader or
+     * leader has stopped sending append entries
+     * @return true if doesn't have leader, false otherwise
+     */
     boolean leaderIsMissing() {
         long now = new Date().getTime();
         //Base Case (When we first start raft protocol)
@@ -125,12 +141,20 @@ public class RaftNode {
         return now - lastUpdateTime > electionTimeout;
     }
 
-
+    /**
+     * Check to see if candidate node has majority votes
+     * @return true if has majority votes, false otherwise
+     */
     boolean checkMajority(){
         int half = (int) Math.floor(this.peerNodes.size()/2);
         return this.voteCount + 1 >= half + 1;
     }
 
+    /**
+     * Start of leader election phase
+     * Change this node to candidate, increment term
+     * and reset everyone's votes
+     */
     synchronized void leaderElection() {
         this.type = NodeType.CANDIDATE;
         this.term += 1;
