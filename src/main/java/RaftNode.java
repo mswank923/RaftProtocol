@@ -134,8 +134,8 @@ public class RaftNode {
     boolean leaderIsMissing() {
         long now = new Date().getTime();
         //Base Case (When we first start raft protocol)
-        if(myLeader == null || now > electionTimeout){
-            return true;
+        if(myLeader == null){
+            return now > electionTimeout;
         }
         long lastUpdateTime = myLeader.getLastUpdated().getTime();
         return now - lastUpdateTime > electionTimeout;
