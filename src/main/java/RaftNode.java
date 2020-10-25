@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Random;
 
 /**
  * This class represents a node within the raft protocol
@@ -43,6 +44,8 @@ public class RaftNode {
 
         this.myLeader = null;
         this.peerNodes = new ArrayList<PeerNode>();
+
+        this.electionTimeout = getRandomNumberInRange(5000, 7000);
         try {
             this.address = InetAddress.getLocalHost();
         } catch (UnknownHostException e) { e.printStackTrace(); }
@@ -84,6 +87,16 @@ public class RaftNode {
         this.lastUpdated = new Date();
     }
 
+    /**
+     * Generate a random number for election timeout
+     * @param min minimum timeout
+     * @param max maximum timeout
+     * @return random number
+     */
+    int getRandomNumberInRange(int min, int max){
+        Random r = new Random();
+        return r.nextInt((max - min) + 1) + min;
+    }
     /**
      * Fetch a PeerNode based on an address.
      * @param address Address of the peer.
