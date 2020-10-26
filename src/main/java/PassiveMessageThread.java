@@ -50,11 +50,16 @@ public class PassiveMessageThread extends Thread {
                         }
                         break;
                     case VOTE_RESPONSE:
-                        if (data instanceof Boolean){
+                        if (data instanceof Boolean) {
+                            // Check to see if we got the vote
                             boolean votedForMe = (boolean) data;
-                            if(votedForMe){
+                            if (votedForMe)
                                 node.incrementVoteCount();
-                            }
+
+                            // Track that this peer has voted
+                            String peerAddress = socket.getInetAddress().getHostAddress();
+                            PeerNode peer = node.getPeer(peerAddress);
+                            peer.setHasVoted(true);
                         }
                         break;
                     case APPEND_ENTRIES:
