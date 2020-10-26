@@ -66,7 +66,7 @@ public class PassiveMessageThread extends Thread {
                                 sourcePeer.update();
                             } else { // new leader was elected
                                 node.myLeader = sourcePeer;
-                                // TODO randomize node's electionTimeout
+                                node.electionTimeout = node.randomIntGenerator(5000, 7000);
                                 node.term++;
                             }
                         } else {

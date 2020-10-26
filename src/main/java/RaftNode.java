@@ -19,18 +19,18 @@ public class RaftNode {
     /**
      * Attributes
      */
-    int term;                       // The current term we are in
+    int term;                               // The current term we are in
 
     private NodeType type;                  // The type of node this is
     private ArrayList<PeerNode> peerNodes;  // List of other nodes in the protocol
-    PeerNode myLeader;              // Who is this node's leader
+    PeerNode myLeader;                      // Who is this node's leader
     private InetAddress address;            // The address of this node
 
     private boolean hasVoted;               // Has this node already voted (for leader election)
     private int voteCount;                  // How many votes does this node have (used for candidate nodes)
 
     private Date lastUpdated;
-    private int electionTimeout;            // Timeout in milliseconds
+    int electionTimeout;                    // Timeout in milliseconds
 
     /**
      * Constructor for the local node that sets its initial values.
@@ -233,7 +233,7 @@ public class RaftNode {
             } else if (thisNode.type == NodeType.CANDIDATE) {
                 if (thisNode.checkMajority()) {
                     thisNode.type = NodeType.LEADER;
-                    // TODO randomize electionTimeout
+                    thisNode.electionTimeout = thisNode.randomIntGenerator(5000, 7000);
                     thisNode.term += 1;
                 } else if (thisNode.checkTieVote()) {
                     thisNode.leaderElection();
