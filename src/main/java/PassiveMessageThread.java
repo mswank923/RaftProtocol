@@ -29,11 +29,6 @@ public class PassiveMessageThread extends Thread {
                 Object data = message.getData();
 
                 switch(type) {
-                    case HEARTBEAT:
-                        InetAddress leaderAddress = (InetAddress) data;
-                        PeerNode sender = node.getPeer(leaderAddress.getHostAddress());
-                        sender.update();
-                        break;
                     case VOTE_REQUEST:
                         if (data instanceof InetAddress) {
                             if (node.hasVoted()) {
@@ -63,7 +58,21 @@ public class PassiveMessageThread extends Thread {
                         }
                         break;
                     case APPEND_ENTRIES:
-                        //Do something
+                        if (data == null) { // we received a heartbeat
+                            String sourceAddress = socket.getInetAddress().getHostAddress();
+                            PeerNode sourcePeer = node.getPeer(sourceAddress);
+
+                            if (sourcePeer.equals(node.myLeader)) {
+                                sourcePeer.update();
+                            } else { // new leader was elected
+                                node.myLeader = sourcePeer;
+                                // TODO randomize node's electionTimeout
+                                node.term++;
+                            }
+                        } else {
+                            // Data is entries we need to append (Project part 2)
+                        }
+
                         break;
                     case APPEND_ENTRIES_RESPONSE:
                         //Do something

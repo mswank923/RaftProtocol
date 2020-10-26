@@ -18,11 +18,11 @@ public class RaftNode {
     /**
      * Attributes
      */
-    private int term;                       // The current term we are in
+    int term;                       // The current term we are in
 
     private NodeType type;                  // The type of node this is
     private ArrayList<PeerNode> peerNodes;  // List of other nodes in the protocol
-    private PeerNode myLeader;              // Who is this node's leader
+    PeerNode myLeader;              // Who is this node's leader
     private InetAddress address;            // The address of this node
 
     private boolean hasVoted;               // Has this node already voted (for leader election)
@@ -109,7 +109,7 @@ public class RaftNode {
      * Send a heartbeat message to all of our peers.
      */
     synchronized void sendHeartbeat() {
-        Message message = new Message(MessageType.HEARTBEAT, this.address);
+        Message message = new Message(MessageType.APPEND_ENTRIES, null);
         for (PeerNode peer : peerNodes)
             sendMessage(peer, message);
     }
