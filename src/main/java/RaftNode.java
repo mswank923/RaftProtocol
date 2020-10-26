@@ -92,7 +92,8 @@ public class RaftNode {
      * @param max max value
      * @return random generated number
      */
-    int randomIntGenerator(int min, int max){
+    int randomIntGenerator(int min, int max) {
+        System.out.println("Randomizing election timeout.");
         Random r = new Random();
         return r.nextInt((max - min) + 1) + min;
     }
@@ -114,6 +115,7 @@ public class RaftNode {
      * @param peer The new peer to add.
      */
     synchronized void addNewPeer(PeerNode peer) {
+        System.out.println("Discovered peer " + peer.getAddress().getCanonicalHostName() + ".");
         peerNodes.add(peer);
     }
 
@@ -121,6 +123,7 @@ public class RaftNode {
      * Send a heartbeat message to all of our peers.
      */
     synchronized void sendHeartbeat() {
+        System.out.println("[LEADER] Sending heartbeat.");
         Message message = new Message(MessageType.APPEND_ENTRIES, null);
         for (PeerNode peer : peerNodes)
             sendMessage(peer, message);
@@ -130,8 +133,9 @@ public class RaftNode {
      * As candidate, send vote request message to peers
      */
     synchronized void requestVotes() {
+        System.out.println("[CANDIDATE] Requesting votes.");
         Message message = new Message(MessageType.VOTE_REQUEST, this.address);
-        //Update timeout
+        // Update timeout
         this.lastUpdated = new Date();
         for (PeerNode peer : peerNodes)
             if (!peer.hasVoted())
@@ -234,6 +238,7 @@ public class RaftNode {
                 // If candidate node has majority votes, then it becomes leader
                 // and regenerates election timeout and new term
                 if (thisNode.checkMajority()) {
+                    System.out.println("Elected!");
                     thisNode.type = NodeType.LEADER;
                     thisNode.electionTimeout = thisNode.randomIntGenerator(5000, 7000);
                     thisNode.term += 1;

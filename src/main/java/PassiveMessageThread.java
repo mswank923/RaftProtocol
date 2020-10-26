@@ -40,7 +40,8 @@ public class PassiveMessageThread extends Thread {
                                 output.writeObject(msg);
                                 node.setHasVoted(true);
                             }
-                            //Reset node's election timeout
+                            System.out.println("Voted!");
+                            // Reset node's election timeout
                             node.resetTimeout();
                         }
                         break;
@@ -63,8 +64,10 @@ public class PassiveMessageThread extends Thread {
                             PeerNode sourcePeer = node.getPeer(sourceAddress);
 
                             if (sourcePeer.equals(node.myLeader)) {
+                                System.out.println("Heard heartbeat.");
                                 sourcePeer.update();
                             } else { // new leader was elected
+                                System.out.println("New leader!");
                                 node.myLeader = sourcePeer;
                                 node.electionTimeout = node.randomIntGenerator(5000, 7000);
                                 node.term++;
