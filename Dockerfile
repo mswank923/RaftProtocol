@@ -18,6 +18,7 @@ RUN mkdir /csci251
 # Copy over the files we need
 COPY pom.xml /csci251/
 COPY README.md /csci251/
+COPY node-start.sh /csci251/
 COPY src /csci251/src
 
 # setup working directory in the container

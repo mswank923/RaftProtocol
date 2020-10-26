@@ -1,7 +1,9 @@
+import java.io.Serializable;
+
 /**
  * A class representing a message from one node to another.
  */
-public class Message {
+public class Message implements Serializable {
 
     /**
      * The type of message being communicated.
