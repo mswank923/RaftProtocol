@@ -1,6 +1,9 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
 
 /**
  * Thread that receives broadcasted addresses to recognize new or existing peers.
@@ -12,10 +15,20 @@ public class BroadcastPassiveThread extends Thread {
      */
     private static final int BUFSIZE = 1024;
 
+    /**
+     * Array of addresses already found, so that we do not have to keep using node.getPeer() and
+     * blocking all the threads constantly.
+     */
+    private ArrayList<String> addresses;
+
     private RaftNode node;
 
     public BroadcastPassiveThread(RaftNode node) {
         this.node = node;
+        this.addresses = new ArrayList<>();
+        try {
+            this.addresses.add(InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException e) { e.printStackTrace(); }
     }
 
     private String receive(DatagramSocket socket) {
@@ -30,11 +43,15 @@ public class BroadcastPassiveThread extends Thread {
 
     private void process(String message) {
         // message is the IP address that belongs to a peer node (or this node)
-        PeerNode peer = node.getPeer(message);
-        if (peer == null) {
-            PeerNode newPeer = new PeerNode(message);
-            node.addNewPeer(newPeer);
-        }
+
+        // Filter out known addresses
+        for (String s : addresses)
+            if (s.equals(message))
+                return;
+
+        // Peer is new, add it
+        PeerNode newPeer = new PeerNode(message);
+        node.addNewPeer(newPeer);
     }
 
     @Override

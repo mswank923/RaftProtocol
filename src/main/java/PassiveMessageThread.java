@@ -18,74 +18,79 @@ public class PassiveMessageThread extends Thread {
     @Override
     public void run() {
         while (true) {
+            // Added delay
+            try {
+                sleep(100);
+            } catch (InterruptedException ignored) { }
+
+            // Open socket for just enough time to retrieve a message
+            Message message = null;
+            String senderAddress = null;
             try (
                     ServerSocket listener = new ServerSocket(RaftNode.MESSAGE_PORT);
                     Socket socket = listener.accept();
-                    ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
-                    ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())
+                    ObjectInputStream input = new ObjectInputStream(socket.getInputStream())
             ) {
-                Message message = (Message) input.readObject();
-                MessageType type = message.getType();
-                Object data = message.getData();
-
-                switch(type) {
-                    case VOTE_REQUEST:
-                        if (data instanceof InetAddress) {
-                            if (node.hasVoted()) {
-                                Message msg = new Message(MessageType.VOTE_RESPONSE, false);
-                                output.writeObject(msg);
-                            }
-                            else {
-                                Message msg = new Message(MessageType.VOTE_RESPONSE, true);
-                                output.writeObject(msg);
-                                node.setHasVoted(true);
-                            }
-                            System.out.println("Voted!");
-                            // Reset node's election timeout
-                            node.resetTimeout();
-                        }
-                        break;
-                    case VOTE_RESPONSE:
-                        if (data instanceof Boolean) {
-                            // Check to see if we got the vote
-                            boolean votedForMe = (boolean) data;
-                            if (votedForMe)
-                                node.incrementVoteCount();
-
-                            // Track that this peer has voted
-                            String peerAddress = socket.getInetAddress().getHostAddress();
-                            PeerNode peer = node.getPeer(peerAddress);
-                            peer.setHasVoted(true);
-                        }
-                        break;
-                    case APPEND_ENTRIES:
-                        if (data == null) { // we received a heartbeat
-                            String sourceAddress = socket.getInetAddress().getHostAddress();
-                            PeerNode sourcePeer = node.getPeer(sourceAddress);
-
-                            if (sourcePeer.equals(node.myLeader)) {
-                                System.out.println("Heard heartbeat.");
-                                sourcePeer.update();
-                            } else { // new leader was elected
-                                System.out.println("New leader!");
-                                node.myLeader = sourcePeer;
-                                node.electionTimeout = node.randomIntGenerator(5000, 7000);
-                                node.term++;
-                            }
-                        } else {
-                            // Data is entries we need to append (Project part 2)
-                        }
-
-                        break;
-                    case APPEND_ENTRIES_RESPONSE:
-                        //Do something
-                        break;
-                }
-
-                try {
-                    sleep(100);
-                } catch (InterruptedException ignored) { }
+                senderAddress = socket.getInetAddress().getHostAddress();
+                message = (Message) input.readObject();
             } catch (IOException | ClassNotFoundException e) { e.printStackTrace(); }
+
+            if (message == null)
+                continue;
+
+            PeerNode sourcePeer = node.getPeer(senderAddress);
+            MessageType type = message.getType();
+            Object data = message.getData();
+
+            switch(type) {
+                case VOTE_REQUEST:
+                    if (data instanceof InetAddress) {
+                        if (node.hasVoted()) {
+                            Message msg = new Message(MessageType.VOTE_RESPONSE, false);
+                            node.sendMessage(sourcePeer, msg);
+                        }
+                        else {
+                            Message msg = new Message(MessageType.VOTE_RESPONSE, true);
+                            node.sendMessage(sourcePeer, msg);
+                            node.setHasVoted(true);
+                        }
+                        System.out.println("Voted!");
+
+                        // Reset node's election timeout
+                        node.resetTimeout();
+                    }
+                    break;
+                case VOTE_RESPONSE:
+                    if (data instanceof Boolean) {
+                        // Check to see if we got the vote
+                        boolean votedForMe = (boolean) data;
+                        if (votedForMe)
+                            node.incrementVoteCount();
+
+                        // Track that this peer has voted
+                        sourcePeer.setHasVoted(true);
+                    }
+                    break;
+                case APPEND_ENTRIES:
+                    if (data == null) { // we received a heartbeat
+                        if (sourcePeer.equals(node.myLeader)) {
+                            System.out.println("Heard heartbeat.");
+                        } else { // new leader was elected
+                            System.out.println("New leader!");
+                            node.myLeader = sourcePeer;
+                            node.electionTimeout = node.randomIntGenerator(5000, 7000);
+                            node.term++;
+                        }
+                        node.resetTimeout();
+                    } else {
+                        // Data is entries we need to append (Project part 2)
+                    }
+
+                    break;
+                case APPEND_ENTRIES_RESPONSE:
+                    //Do something
+                    break;
+            }
         }
     }
 }

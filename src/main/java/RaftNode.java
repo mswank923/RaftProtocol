@@ -29,7 +29,7 @@ public class RaftNode {
     private boolean hasVoted;               // Has this node already voted (for leader election)
     private int voteCount;                  // How many votes does this node have (used for candidate nodes)
 
-    private Date lastUpdated;
+    private Date lastLeaderUpdate;          // The last time we heard from leader or a candidate
     int electionTimeout;                    // Timeout in milliseconds
 
     /**
@@ -40,9 +40,10 @@ public class RaftNode {
         this.type = NodeType.FOLLOWER;
         this.voteCount = 0;
         this.hasVoted = false;
-        this.lastUpdated = new Date();
 
+        this.lastLeaderUpdate = new Date();
         this.electionTimeout = randomIntGenerator(5000, 7000);
+
         this.myLeader = null;
         this.peerNodes = new ArrayList<PeerNode>();
         try {
@@ -83,7 +84,7 @@ public class RaftNode {
      * and heartbeat timeout
      */
     void resetTimeout(){
-        this.lastUpdated = new Date();
+        this.lastLeaderUpdate = new Date();
     }
 
     /**
@@ -115,7 +116,7 @@ public class RaftNode {
      * @param peer The new peer to add.
      */
     synchronized void addNewPeer(PeerNode peer) {
-        System.out.println("Discovered peer " + peer.getAddress().getCanonicalHostName() + ".");
+        System.out.println("Discovered peer " + peer.getAddress().getHostName() + ".");
         peerNodes.add(peer);
     }
 
@@ -135,8 +136,7 @@ public class RaftNode {
     synchronized void requestVotes() {
         System.out.println("[CANDIDATE] Requesting votes.");
         Message message = new Message(MessageType.VOTE_REQUEST, this.address);
-        // Update timeout
-        this.lastUpdated = new Date();
+
         for (PeerNode peer : peerNodes)
             if (!peer.hasVoted())
                 sendMessage(peer, message);
@@ -150,12 +150,7 @@ public class RaftNode {
     boolean leaderIsMissing() {
         long now = new Date().getTime();
 
-        // Base Case (When we first start raft protocol)
-        if (myLeader == null)
-            return now > electionTimeout;
-
-        long lastUpdateTime = myLeader.getLastUpdated().getTime();
-        return now - lastUpdateTime > electionTimeout;
+        return now - lastLeaderUpdate.getTime() > electionTimeout;
     }
 
     /**
@@ -202,11 +197,14 @@ public class RaftNode {
     void sendMessage(PeerNode peer, Message message) {
         try (Socket socket = new Socket()) {
             InetSocketAddress destination = new InetSocketAddress(peer.getAddress(), MESSAGE_PORT);
-            socket.connect(destination, 10000);
+            socket.connect(destination, 5000);
 
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             out.writeObject(message);
+
+            Thread.sleep(100); // we have to let the data be read before closing the socket
         } catch (IOException e) { e.printStackTrace(); }
+        catch (InterruptedException ignored) { }
     }
 
     public static void main(String[] args) {
@@ -243,8 +241,11 @@ public class RaftNode {
                     thisNode.electionTimeout = thisNode.randomIntGenerator(5000, 7000);
                     thisNode.term += 1;
                 } else if (thisNode.checkTieVote()) {
-                    thisNode.setType(NodeType.FOLLOWER);            // If a tie vote occurs, then reset to follower node
-                }                                                   // and restart leader election phase
+                    thisNode.setType(NodeType.FOLLOWER);
+                    thisNode.resetTimeout();
+                    // If a tie vote occurs, then reset to follower node
+                    // and restart leader election phase
+                }
             }
 
             try {
