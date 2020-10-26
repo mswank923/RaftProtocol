@@ -231,13 +231,15 @@ public class RaftNode {
             if (thisNode.type == NodeType.FOLLOWER && thisNode.leaderIsMissing()) {
                 thisNode.leaderElection();
             } else if (thisNode.type == NodeType.CANDIDATE) {
+                // If candidate node has majority votes, then it becomes leader
+                // and regenerates election timeout and new term
                 if (thisNode.checkMajority()) {
                     thisNode.type = NodeType.LEADER;
                     thisNode.electionTimeout = thisNode.randomIntGenerator(5000, 7000);
                     thisNode.term += 1;
                 } else if (thisNode.checkTieVote()) {
-                    thisNode.leaderElection();
-                }
+                    thisNode.setType(NodeType.FOLLOWER);            // If a tie vote occurs, then reset to follower node
+                }                                                   // and restart leader election phase
             }
 
             try {
