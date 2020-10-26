@@ -79,8 +79,10 @@ public class PassiveMessageThread extends Thread {
                         break;
                 }
 
-                // TODO
-            } catch (IOException | ClassNotFoundException e){ e.printStackTrace(); }
+                try {
+                    sleep(100);
+                } catch (InterruptedException ignored) { }
+            } catch (IOException | ClassNotFoundException e) { e.printStackTrace(); }
         }
     }
 }
