@@ -1,23 +1,6 @@
-Steps
+1. Write a Dockerfile for the node.
+    Remember to open the ports
 
-1. Implement leader election.
-  a. RaftNode becomes candidate
-  b. RaftNode sends vote requests to each peer.
-  c. When new leader is recognized, randomize the election timeout.
+2. Write a docker-compose file to bring up 5 nodes.
 
-2. When fresh node starts, it will hit election timeout and begin leader election. Since other nodes
-already have a leader, once they receive REQUEST_VOTE Message they should respond with the correct leader.
-
-Added:
-  1. if votes are tied and no more peers can vote, begin new election cycle from the start
-
-  2. HEARTBEAT messages don't exist, they are merely APPEND_ENTRIES messages with no content
-      Implement VOTE_REQUEST message handling in PassiveMessageThread
-  3. Implement APPEND_ENTRIES instead of heartbeat, and when a node receives this from a node that
-  is not its leader, then set leader to the node
-
-  4. at the start of a new election term, randomize the election timeout
-
-  5. Implement Heartbeat
-    a. Add last updated attribute
-    b. When receiving message from a leader or candidate, refresh our last updated to current time.
+3. Ensure things are working, if not, fix them.
