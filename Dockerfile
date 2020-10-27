@@ -2,7 +2,7 @@
 # Build image with:  docker build -t csci251:latest .
 
 FROM ubuntu:18.04
-MAINTAINER Peizhao Hu, http://cs.rit.edu/~ph
+MAINTAINER Shakeel Farooq, Max Swank
 
 # install all dependencies
 RUN apt-get update && \

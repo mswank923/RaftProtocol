@@ -19,7 +19,7 @@ public class PassiveMessageThread extends Thread {
     public void run() {
         while (true) {
             try (
-                    ServerSocket listener = new ServerSocket(node.MESSAGE_PORT);
+                    ServerSocket listener = new ServerSocket(RaftNode.MESSAGE_PORT);
                     Socket socket = listener.accept();
                     ObjectInputStream input = new ObjectInputStream(socket.getInputStream());
                     ObjectOutputStream output = new ObjectOutputStream(socket.getOutputStream())
