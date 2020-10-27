@@ -138,8 +138,7 @@ public class RaftNode {
         Message message = new Message(MessageType.VOTE_REQUEST, this.address);
 
         for (PeerNode peer : peerNodes)
-            if (!peer.hasVoted())
-                sendMessage(peer, message);
+            sendMessage(peer, message);
     }
 
     /**
@@ -203,6 +202,9 @@ public class RaftNode {
             out.writeObject(message);
 
             Thread.sleep(100); // we have to let the data be read before closing the socket
+
+            // Receive response
+            // takes us time to read the response
         } catch (IOException e) { e.printStackTrace(); }
         catch (InterruptedException ignored) { }
     }

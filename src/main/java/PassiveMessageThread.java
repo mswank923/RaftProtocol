@@ -47,11 +47,11 @@ public class PassiveMessageThread extends Thread {
                     if (data instanceof InetAddress) {
                         if (node.hasVoted()) {
                             Message msg = new Message(MessageType.VOTE_RESPONSE, false);
-                            node.sendMessage(sourcePeer, msg);
+                            node.sendMessage(sourcePeer, msg); // reopen the socket
                         }
                         else {
                             Message msg = new Message(MessageType.VOTE_RESPONSE, true);
-                            node.sendMessage(sourcePeer, msg);
+                            node.sendMessage(sourcePeer, msg); // reopen the socket
                             node.setHasVoted(true);
                         }
                         System.out.println("Voted!");
@@ -69,6 +69,8 @@ public class PassiveMessageThread extends Thread {
 
                         // Track that this peer has voted
                         sourcePeer.setHasVoted(true);
+
+                        System.out.println("Received vote.");
                     }
                     break;
                 case APPEND_ENTRIES:

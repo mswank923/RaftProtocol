@@ -52,6 +52,7 @@ public class BroadcastPassiveThread extends Thread {
         // Peer is new, add it
         PeerNode newPeer = new PeerNode(message);
         node.addNewPeer(newPeer);
+        addresses.add(message);
     }
 
     @Override
