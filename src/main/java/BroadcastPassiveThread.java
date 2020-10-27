@@ -44,6 +44,12 @@ public class BroadcastPassiveThread extends Thread {
     private void process(String message) {
         // message is the IP address that belongs to a peer node (or this node)
 
+        // Prevent our own address from going through
+        try {
+            if (!InetAddress.getByName(message).getCanonicalHostName().contains("."))
+                return;
+        } catch (UnknownHostException e) { e.printStackTrace(); }
+
         // Filter out known addresses
         for (String s : addresses)
             if (s.equals(message))

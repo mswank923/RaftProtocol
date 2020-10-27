@@ -1,16 +1,20 @@
-Normalize conversation timelines:
+1. Normalize conversation timelines:
+  Node 1:
+  - send message
+  - receive message
+  - close socket
 
-Node 1:
-- send message
-- receive message
-- close socket
-
-Node 2:
-- receive message
-- send response
-- close socket
+  Node 2:
+  - receive message
+  - send response
+  - close socket
 
 
-If this doesn't work, adopt client-server model:
-- new thread for each peer node we talk with
-- keep sockets open
+  If this doesn't work, adopt client-server model:
+  - new thread for each peer node we talk with
+  - keep sockets open
+
+
+
+2. Fix dockerfile names
+

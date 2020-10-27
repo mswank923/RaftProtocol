@@ -116,7 +116,8 @@ public class RaftNode {
      * @param peer The new peer to add.
      */
     synchronized void addNewPeer(PeerNode peer) {
-        System.out.println("Discovered peer " + peer.getAddress().getHostName() + ".");
+        String name = peer.getAddress().getCanonicalHostName().split("\\.")[0];
+        System.out.println("Discovered peer " + name + ".");
         peerNodes.add(peer);
     }
 
