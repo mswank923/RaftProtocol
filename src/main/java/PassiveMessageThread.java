@@ -38,8 +38,6 @@ public class PassiveMessageThread extends Thread {
 
                 // 4. Write response
                 out.writeObject(response);
-                if (message.getType().equals(MessageType.VOTE_REQUEST))
-                    node.log("Voted!");
 
                 socket.shutdownOutput();
 

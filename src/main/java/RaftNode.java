@@ -4,6 +4,7 @@ import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
@@ -133,8 +134,13 @@ public class RaftNode {
     synchronized void sendHeartbeat() {
         log("Sending heartbeat.");
         Message message = new Message(MessageType.APPEND_ENTRIES, null);
+
+        ArrayList<PeerNode> deadNodes = new ArrayList<>();
         for (PeerNode peer : peerNodes)
-            sendMessage(peer, message);
+            if(!sendMessage(peer, message))
+                deadNodes.add(peer);
+        for (PeerNode deadPeer : deadNodes)
+            peerNodes.remove(deadPeer);
     }
 
     /**
@@ -144,8 +150,12 @@ public class RaftNode {
         log("Requesting votes.");
         Message message = new Message(MessageType.VOTE_REQUEST, this.term);
 
+        ArrayList<PeerNode> deadNodes = new ArrayList<>();
         for (PeerNode peer : peerNodes)
-            sendMessage(peer, message);
+            if(!sendMessage(peer, message))
+                deadNodes.add(peer);
+        for (PeerNode deadPeer : deadNodes)
+            peerNodes.remove(deadPeer);
     }
 
     /**
@@ -198,16 +208,16 @@ public class RaftNode {
     }
 
     /**
-     * Open a socket, and send a message.
+     * Open a socket, and send a message. Returns success status.
      * @param peer Destination Peer.
      * @param message Message to send.
-     * @return Message representing the response to the one we sent.
+     * @return Whether successful or not. false indicates a dead node.
      */
-    private void sendMessage(PeerNode peer, Message message) {
+    private boolean sendMessage(PeerNode peer, Message message) {
         // Note: Only MessageTypes supported to send here are APPEND_ENTRIES and VOTE_REQUEST
+        Socket socket = new Socket();
         try {
             // 1. Socket opens
-            Socket socket = new Socket();
             InetSocketAddress destination = new InetSocketAddress(peer.getAddress(), MESSAGE_PORT);
             socket.connect(destination, 500);
 
@@ -225,7 +235,16 @@ public class RaftNode {
             // 4. Close socket
             socket.close();
             processMessage(response, senderAddress);
-        } catch (IOException | ClassNotFoundException e) { e.printStackTrace(); }
+        } catch (SocketTimeoutException e) { // Peer is dead (most likely the leader we stopped)
+            return false;
+        } catch (IOException | ClassNotFoundException ignored) {
+
+        }
+        finally {
+            if (!socket.isClosed())
+                try { socket.close(); } catch (IOException ignored) { }
+        }
+        return true;
     }
 
     /**
@@ -256,6 +275,7 @@ public class RaftNode {
                 if (peerTerm > term || !hasVoted) {
                     hasVoted = true;
                     term = peerTerm;
+                    log("Voted!");
                     return new Message(MessageType.VOTE_RESPONSE, true);
                 } else { // we voted for someone else already
                     return new Message(MessageType.VOTE_RESPONSE, false);
