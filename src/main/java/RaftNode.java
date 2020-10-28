@@ -198,31 +198,33 @@ public class RaftNode {
     }
 
     /**
-     * Open a socket, and send a message. If awaitResponse = true then wait hold socket open until a
-     * response is received.
+     * Open a socket, and send a message.
      * @param peer Destination Peer.
      * @param message Message to send.
      * @return Message representing the response to the one we sent.
      */
     private void sendMessage(PeerNode peer, Message message) {
         // Note: Only MessageTypes supported to send here are APPEND_ENTRIES and VOTE_REQUEST
-        try (Socket socket = new Socket()) {
+        try {
             // 1. Socket opens
+            Socket socket = new Socket();
             InetSocketAddress destination = new InetSocketAddress(peer.getAddress(), MESSAGE_PORT);
-            socket.connect(destination, 5000);
+            socket.connect(destination, 500);
 
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
             // 2. Write to output
             out.writeObject(message);
+            socket.shutdownOutput();
 
             // 3. Await response (response = input.readObject())
             Message response = (Message) in.readObject();
             String senderAddress = socket.getInetAddress().getHostAddress();
-            processMessage(response, senderAddress);
 
             // 4. Close socket
+            socket.close();
+            processMessage(response, senderAddress);
         } catch (IOException | ClassNotFoundException e) { e.printStackTrace(); }
     }
 
@@ -232,7 +234,7 @@ public class RaftNode {
      * @param sourceAddress The address of the source (sender) of the message.
      * @return A Message representing a response to the input Message, only if required by protocol.
      */
-    synchronized Message processMessage(Message message, String sourceAddress) {
+    Message processMessage(Message message, String sourceAddress) {
         PeerNode sourcePeer = getPeer(sourceAddress);
         if (sourcePeer == null)
             throw new RuntimeException("Received message from unknown peer!");
@@ -277,7 +279,6 @@ public class RaftNode {
 
             case APPEND_ENTRIES:
                 if (data == null) { // null indicates this was just a heartbeat
-                    resetTimeout();
 
                     if (sourcePeer.equals(myLeader)) { // From current leader
                         log("Heard heartbeat.");
@@ -287,12 +288,13 @@ public class RaftNode {
                         hasVoted = false;
                         randomizeElectionTimeout();
                     }
+                    resetTimeout();
+                    return new Message(MessageType.APPEND_ENTRIES_RESPONSE, null);
                 }
                 // else if (data instanceof Entry) {
                 else {
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES!");
                 }
-                break;
 
             case APPEND_ENTRIES_RESPONSE:
                 break;

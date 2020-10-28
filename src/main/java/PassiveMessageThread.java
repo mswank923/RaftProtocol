@@ -24,10 +24,10 @@ public class PassiveMessageThread extends Thread {
             Message message;
             String senderAddress;
             try (
-                    ServerSocket listener = new ServerSocket(RaftNode.MESSAGE_PORT);
-                    Socket socket = listener.accept();
-                    ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-                    ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())
+                ServerSocket listener = new ServerSocket(RaftNode.MESSAGE_PORT);
+                Socket socket = listener.accept();
+                ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+                ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())
             ) {
                 // 2. Read message from input
                 message = (Message) in.readObject();
@@ -41,13 +41,14 @@ public class PassiveMessageThread extends Thread {
                 if (message.getType().equals(MessageType.VOTE_REQUEST))
                     node.log("Voted!");
 
-                // 5. Wait until socket is closed
-                while (!socket.isClosed())
-                    sleep(100);
+                socket.shutdownOutput();
 
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-            } catch (InterruptedException ignored) { }
+                // 5. Wait until socket is closed
+                while (in.read() != -1) {
+                    sleep(50);
+                }
+
+            } catch (IOException | ClassNotFoundException | InterruptedException ignored) { }
         }
     }
 }

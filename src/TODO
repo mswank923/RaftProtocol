@@ -35,6 +35,7 @@ Added:
   - randomNumberGenerator(max, min) --> randomizeElectionTimeout()
   - Added log() for uniform output
   - deleted Peer.type and Peer.lastUpdated attribute
+
   - Changed new term mechanism:
     - new term when leader election starts
     - new term when request vote is received
