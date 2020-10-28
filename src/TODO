@@ -1,28 +1,4 @@
-1. Normalize conversation timelines:
-
-  Error we are getting:
-    1. node 1 requests vote from node 2
-    2. socket closes
-    3. node 1 requests vote from node 3
-    4. node 2 tries to reopen communication with node 1 but fails
-
-  Node 1:
-  - send message
-  - receive message
-  - close socket
-
-  Node 2:
-  - receive message
-  - send response
-  - (added delay)
-  - close socket
-
-
-  If this doesn't work, adopt client-server model:
-  - new thread for each peer node we talk with
-  - keep sockets open
-
-
+1. Fix socket timeout error when trying to connect to a dead leader
 
 2. Fix dockerfile name.
 
@@ -45,3 +21,4 @@ Added:
 
   if peer is on next term, vote yes
   if peer is on same term, vote yes iff !hasVoted
+

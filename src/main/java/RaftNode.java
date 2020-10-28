@@ -332,6 +332,9 @@ public class RaftNode {
         ActiveMessageThread activeMessageThread = new ActiveMessageThread(thisNode);
         activeMessageThread.start();
 
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException ignored) { }
 
         // Main loop performs constant checking
         while (true) {
