@@ -1,77 +1,36 @@
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Date;
 
 /**
  * A PeerNode represents a neighbor of a RaftNode. A list of PeerNodes are stored by the RaftNode.
  */
-public class PeerNode {
+class PeerNode {
 
-    //////////////////
-    //  Attributes  //
-    //////////////////
-
-    private NodeType type;
     private boolean hasVoted;
-    private Date lastUpdated;
     private InetAddress address;
 
     PeerNode(String address) {
-        this.type = NodeType.FOLLOWER;
         this.hasVoted = false;
-        this.lastUpdated = new Date();
         try {
             this.address = InetAddress.getByName(address);
         } catch (UnknownHostException e) { e.printStackTrace(); }
     }
 
-
-    ///////////////////////////
-    //  Getters and Setters  //
-    ///////////////////////////
-
-    public NodeType getType() {
-        return type;
+    void voted() {
+        this.hasVoted = true;
     }
 
-    public void setType(NodeType type) {
-        this.type = type;
-    }
-
-    public boolean hasVoted() {
-        return hasVoted;
-    }
-
-    public void setHasVoted(boolean hasVoted) {
-        this.hasVoted = hasVoted;
-    }
-
-    public Date getLastUpdated() {
-        return lastUpdated;
-    }
-
-    public void update() {
-        this.lastUpdated = new Date();
-    }
-
-    public void update(NodeType newType) {
-        this.type = newType;
-        this.update();
-    }
-
-    public void resetVote() {
+    void resetVote() {
         this.hasVoted = false;
     }
 
-    public InetAddress getAddress() {
+    InetAddress getAddress() {
         return address;
     }
 
-    public void setAddress(InetAddress address) {
-        this.address = address;
+    boolean hasVoted() {
+        return hasVoted;
     }
 
-    public boolean addressEquals(String address) {
-        return this.address.getHostAddress().equals(address);
-    }
+    boolean equals(String address) { return this.address.getHostAddress().equals(address); }
 }

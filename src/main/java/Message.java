@@ -3,7 +3,7 @@ import java.io.Serializable;
 /**
  * A class representing a message from one node to another.
  */
-public class Message implements Serializable {
+class Message implements Serializable {
 
     /**
      * The type of message being communicated.
@@ -17,12 +17,12 @@ public class Message implements Serializable {
      */
     private Object data;
 
-    public Message(MessageType type, Object data) {
+    Message(MessageType type, Object data) {
         this.type = type;
         this.data = data;
     }
 
-    public MessageType getType() { return type; }
+    MessageType getType() { return type; }
 
-    public Object getData() { return data; }
+    Object getData() { return data; }
 }

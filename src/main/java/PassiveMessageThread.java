@@ -1,5 +1,6 @@
-import java.io.*;
-import java.net.InetAddress;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -14,85 +15,39 @@ public class PassiveMessageThread extends Thread {
         this.node = node;
     }
 
-
     @Override
     public void run() {
+        // Process incoming communications.
+        // Note: only incoming messages are VOTE_REQUEST and APPEND_ENTRIES
         while (true) {
-            // Added delay
-            try {
-                sleep(100);
-            } catch (InterruptedException ignored) { }
-
-            // Open socket for just enough time to retrieve a message
-            Message message = null;
-            String senderAddress = null;
+            // 1. Socket opens
+            Message message;
+            String senderAddress;
             try (
                     ServerSocket listener = new ServerSocket(RaftNode.MESSAGE_PORT);
                     Socket socket = listener.accept();
-                    ObjectInputStream input = new ObjectInputStream(socket.getInputStream())
+                    ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+                    ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())
             ) {
+                // 2. Read message from input
+                message = (Message) in.readObject();
                 senderAddress = socket.getInetAddress().getHostAddress();
-                message = (Message) input.readObject();
-            } catch (IOException | ClassNotFoundException e) { e.printStackTrace(); }
 
-            if (message == null)
-                continue;
+                // 3. Process message & prepare response
+                Message response = node.processMessage(message, senderAddress);
 
-            PeerNode sourcePeer = node.getPeer(senderAddress);
-            MessageType type = message.getType();
-            Object data = message.getData();
+                // 4. Write response
+                out.writeObject(response);
+                if (message.getType().equals(MessageType.VOTE_REQUEST))
+                    node.log("Voted!");
 
-            switch(type) {
-                case VOTE_REQUEST:
-                    if (data instanceof InetAddress) {
-                        if (node.hasVoted()) {
-                            Message msg = new Message(MessageType.VOTE_RESPONSE, false);
-                            node.sendMessage(sourcePeer, msg); // reopen the socket
-                        }
-                        else {
-                            Message msg = new Message(MessageType.VOTE_RESPONSE, true);
-                            node.sendMessage(sourcePeer, msg); // reopen the socket
-                            node.setHasVoted(true);
-                        }
-                        System.out.println("Voted!");
+                // 5. Wait until socket is closed
+                while (!socket.isClosed())
+                    sleep(100);
 
-                        // Reset node's election timeout
-                        node.resetTimeout();
-                    }
-                    break;
-                case VOTE_RESPONSE:
-                    if (data instanceof Boolean) {
-                        // Check to see if we got the vote
-                        boolean votedForMe = (boolean) data;
-                        if (votedForMe)
-                            node.incrementVoteCount();
-
-                        // Track that this peer has voted
-                        sourcePeer.setHasVoted(true);
-
-                        System.out.println("Received vote.");
-                    }
-                    break;
-                case APPEND_ENTRIES:
-                    if (data == null) { // we received a heartbeat
-                        if (sourcePeer.equals(node.myLeader)) {
-                            System.out.println("Heard heartbeat.");
-                        } else { // new leader was elected
-                            System.out.println("New leader!");
-                            node.myLeader = sourcePeer;
-                            node.electionTimeout = node.randomIntGenerator(5000, 7000);
-                            node.term++;
-                        }
-                        node.resetTimeout();
-                    } else {
-                        // Data is entries we need to append (Project part 2)
-                    }
-
-                    break;
-                case APPEND_ENTRIES_RESPONSE:
-                    //Do something
-                    break;
-            }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            } catch (InterruptedException ignored) { }
         }
     }
 }

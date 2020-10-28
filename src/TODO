@@ -1,4 +1,11 @@
 1. Normalize conversation timelines:
+
+  Error we are getting:
+    1. node 1 requests vote from node 2
+    2. socket closes
+    3. node 1 requests vote from node 3
+    4. node 2 tries to reopen communication with node 1 but fails
+
   Node 1:
   - send message
   - receive message
@@ -7,6 +14,7 @@
   Node 2:
   - receive message
   - send response
+  - (added delay)
   - close socket
 
 
@@ -16,5 +24,23 @@
 
 
 
-2. Fix dockerfile names
+2. Fix dockerfile name.
 
+
+
+Added:
+  - await response in RaftNode.sendMessage()
+  - send response in PassiveMessageThread
+  - moved MessageType processing logic to RaftNode.processMessage()
+  - randomNumberGenerator(max, min) --> randomizeElectionTimeout()
+  - Added log() for uniform output
+  - deleted Peer.type and Peer.lastUpdated attribute
+  - Changed new term mechanism:
+    - new term when leader election starts
+    - new term when request vote is received
+    - hasVoted false when new leader elected
+
+
+
+  if peer is on next term, vote yes
+  if peer is on same term, vote yes iff !hasVoted
