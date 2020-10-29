@@ -7,7 +7,7 @@ services:
   node1:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile-raftprotocol
     image: raft-node:latest
     container_name: node1
     environment:

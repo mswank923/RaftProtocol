@@ -1,44 +1,35 @@
 # RaftProtocol
-This project implements the raft protocol for distributed systems
+This project implements and demonstrates the Raft Protocol for distributed systems.
 
-A tutorial for the raft protocol can be found at the following link:
-http://thesecretlivesofdata.com/raft/
+Follow [this](http://thesecretlivesofdata.com/raft/) link for a visual demonstration of the Raft 
+Protocol.
 
-To run this project using docker consider the following:
-
-For Docker containers:
-# Docker Container
-Build image with
+## Docker
+Build image with:
 ```
-docker build -t csci251:latest -f Dockerfile-raftprotocol
+docker build -t raft-node:latest -f Dockerfile-raftprotocol
 ```
 
-Verify the new image with
+See the new image with:
 ```
 docker images
 ```
 
-Start a container
+Start a container:
 ```
-docker run -it csci251 /bin/bash
+docker run -it raft-node /bin/bash
 ```
 
-For docker-compose:
-#Docker-compose
-Build and start docker containers
+##Docker-compose
+Start 5 docker containers each running RaftNode:
 ```
 docker-compose -f docker-compose-raftprotocol.yml up
 ```
 use `--build` to rebuild docker image
 
-To attach to separate running docker containers use the following command:
+To attach the shell to a running container:
 ```
 docker exec -it <CONTAINER-NAME> bash
 ```
 
-where `<CONTAINER-NAME>` should be replaced with you targeted container name.
-
-#Running the Program
-When you build and start the docker containers with 
-the docker-compose file, then 5 different containers (nodes)
-will automatically run the program.
+where `<CONTAINER-NAME>` should be replaced with the name of the targeted container.
