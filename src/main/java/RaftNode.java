@@ -11,59 +11,72 @@ import java.util.Date;
 import java.util.Random;
 
 /**
- * This class represents a node within the raft protocol
+ * This class represents the local node within the raft protocol.
  */
 public class RaftNode {
 
+    /**
+     * Port on which to broadcast UDP packets. Must be exposed local and remote.
+     */
     static final int BROADCAST_PORT = 6788;
+
+    /**
+     * Port on which to perform TCP communications. Must be exposed local and remote.
+     */
     static final int MESSAGE_PORT = 6789;
 
-    // Election timeout range (in seconds)
+    /**
+     * Election timeout range (in seconds)
+     */
     static final int ELECTION_TIMEOUT_MIN = 4;
     static final int ELECTION_TIMEOUT_MAX = 8;
 
     /**
      * Attributes
      */
-    private int term;                       // The current term we are in
 
-    private NodeType type;                  // The type of node this is
-    private ArrayList<PeerNode> peerNodes;  // List of other nodes in the protocol
-    private PeerNode myLeader;                      // Who is this node's leader
-    private InetAddress myAddress;            // The address of this node
+    private int term;                      // Current term
+    private NodeType type;                 // Current type of node
 
-    private boolean hasVoted;               // Has this node already voted (for leader election)
-    private int voteCount;                  // How many votes does this node have (used for candidate nodes)
+    private ArrayList<PeerNode> peerNodes; // List of peers in the protocol, must be thread-safe
+    private PeerNode myLeader;             // Current leader node
+    private InetAddress myAddress;         // Local node's address
 
-    private Date lastLeaderUpdate;          // The last time we heard from leader or a candidate
-    private int electionTimeout;            // Timeout in milliseconds
+    private boolean hasVoted;              // Voted status in current term
+    private int voteCount;                 // Vote tally in current term
+
+    private Date lastLeaderUpdate;         // Timestamp of last message from leader or candidate
+    private int electionTimeout;           // Current term's election timeout in milliseconds
 
     /**
-     * Constructor for the local node that sets its initial values.
+     * Constructor for the local node, sets its initial values.
      */
     private RaftNode() {
         setType(NodeType.FOLLOWER);
+        resetTimeout();
+        randomizeElectionTimeout();
 
         this.term = 0;
         this.voteCount = 0;
 
         this.hasVoted = false;
-
-        this.lastLeaderUpdate = new Date();
-        randomizeElectionTimeout();
-
         this.myLeader = null;
+
         this.peerNodes = new ArrayList<>();
+
         try {
             this.myAddress = InetAddress.getLocalHost();
         } catch (UnknownHostException e) { e.printStackTrace(); }
     }
 
+    /**
+     * Set the type of the local node.
+     * @param type The new type.
+     */
     private void setType(NodeType type) { this.type = type; }
 
     /**
-     * Adds a newly created PeerNode to our list of Peers. Make sure to check that the peer does
-     * not exist yet (getPeer != null).
+     * Adds a newly created PeerNode to our list of Peers. Assumes that the peer does not yet exist.
      * @param peer The new peer to add.
      */
     synchronized void addNewPeer(PeerNode peer) {
@@ -72,20 +85,41 @@ public class RaftNode {
         log("Discovered peer " + name + ".");
     }
 
+    /**
+     * Add a vote to the current term's vote tally. Nodes vote for themselves once, and retrieve the
+     * rest from REQUEST_VOTE messages to other peers. A majority vote allows a CANDIDATE to promote
+     * to LEADER.
+     */
     private void incrementVoteCount() { this.voteCount++; }
 
+    /**
+     * Move on to the next term number. Occurs when node promotes to CANDIDATE, or when hearing from
+     * a CANDIDATE for the first time in a term.
+     */
     private void incrementTerm() { term++; }
 
+    /**
+     * Get the current type of the local node.
+     * @return The current node type.
+     */
     NodeType getType() { return type; }
 
+    /**
+     * Get the address of the local node.
+     * @return The local node's address.
+     */
     InetAddress getMyAddress() { return this.myAddress; }
 
-    synchronized int getPeerCount() { return this.peerNodes.size(); }
+    /**
+     * Gets the total number of known nodes, including the local node itself.
+     * @return The number of nodes.
+     */
+    synchronized int getNodeCount() { return this.peerNodes.size() + 1; }
 
     /**
-     * Fetch a PeerNode based on an address.
+     * Fetch a PeerNode from peerList based on its address. Returns null if the Peer is not known.
      * @param address Address of the peer.
-     * @return The PeerNode or null if not found.
+     * @return The PeerNode, or null if not found.
      */
     private synchronized PeerNode getPeer(String address) {
         for (PeerNode peer : peerNodes)
@@ -95,8 +129,7 @@ public class RaftNode {
     }
 
     /**
-     * Reset the last updated to current time for election timeout
-     * and heartbeat timeout
+     * Reset the time that a leader or candidate was last heard from.
      */
     private void resetTimeout() { this.lastLeaderUpdate = new Date(); }
 
@@ -115,7 +148,7 @@ public class RaftNode {
     }
 
     /**
-     * Send a heartbeat message to all of our peers.
+     * Send a heartbeat message to all peers.
      */
     synchronized void sendHeartbeat() {
         log("Sending heartbeat.");
@@ -130,7 +163,7 @@ public class RaftNode {
     }
 
     /**
-     * As candidate, send vote request message to peers
+     * Send a vote request to all peers.
      */
     private synchronized void requestVotes() {
         log("Requesting votes.");
@@ -145,9 +178,8 @@ public class RaftNode {
     }
 
     /**
-     * Check to see if node doesn't have a leader or
-     * leader has stopped sending append entries
-     * @return true if doesn't have leader, false otherwise
+     * Check to see if leader has stopped sending heartbeats.
+     * @return true if leader is missing, false otherwise.
      */
     private boolean leaderIsMissing() {
         long now = new Date().getTime();
@@ -155,17 +187,17 @@ public class RaftNode {
     }
 
     /**
-     * Check to see if candidate node has majority votes
-     * @return true if has majority votes, false otherwise
+     * Check to see if candidate node has the majority vote.
+     * @return true if has majority votes, false otherwise.
      */
     private boolean checkMajorityVote() {
-        int majority = getPeerCount() / 2 + 1;
+        int majority = getNodeCount() / 2 + 1;
         return this.voteCount >= majority;
     }
 
     /**
      * Check to see if the vote is stuck in a tie.
-     * @return true if we have gotten a VOTE_RESPONSE from every peer.
+     * @return true if we have gotten a VOTE_RESPONSE from every peer, false otherwise.
      */
     private synchronized boolean checkTieVote() {
         for (PeerNode peer : peerNodes)
@@ -175,8 +207,8 @@ public class RaftNode {
     }
 
     /**
-     * Start of leader election phase
-     * Change this node to candidate, increment term, and reset everyone's votes
+     * Start a leader election term. Change this node to candidate, increment term, and reset
+     * all peers' votes.
      */
     private synchronized void leaderElection() {
         setType(NodeType.CANDIDATE);
@@ -194,7 +226,7 @@ public class RaftNode {
     }
 
     /**
-     * Open a socket, and send a message. Returns success status.
+     * Open a socket and send a message. Returns success status.
      * @param peer Destination Peer.
      * @param message Message to send.
      * @return Whether successful or not. false indicates a dead node.
@@ -311,13 +343,17 @@ public class RaftNode {
     }
 
     /**
-     * Outputs a log-worthy message to stdout after tagging it with the local node's NodeType.
+     * Outputs a log message to stdout after tagging it with the local node's NodeType.
      * @param message The message to send to log.
      */
-    void log(String message) {
-        System.out.println("[" + type.toString() + "] " + message);
-    }
+    void log(String message) { System.out.println("[" + type.toString() + "] " + message); }
 
+    /**
+     * Main method, runs the local node's program. Starts by initializing the node and its
+     * communication threads, then enters mainloop of type-specific checks including missing
+     * leader and majority vote.
+     * @param args Command-line arguments, unused.
+     */
     public static void main(String[] args) {
         // Start up the local node
         RaftNode thisNode = new RaftNode();
@@ -338,24 +374,26 @@ public class RaftNode {
         ActiveMessageThread activeMessageThread = new ActiveMessageThread(thisNode);
         activeMessageThread.start();
 
+        // 2 seconds added delay before election checking so other nodes can startup
         try {
             Thread.sleep(2000);
         } catch (InterruptedException ignored) { }
 
-        // Main loop performs constant checking
+        // Main loop performs constant checking based on local node's type
         while (true) {
             if (thisNode.type.equals(NodeType.FOLLOWER)) {
-                // Check for missing leader
-                if (thisNode.leaderIsMissing()) // Begin a new leader election cycle
+                // Check for missing leader, and begin a new leader election cycle if true
+                if (thisNode.leaderIsMissing())
                     thisNode.leaderElection();
 
             } else if (thisNode.type.equals(NodeType.CANDIDATE)) {
-                // Check for majority or tie vote
+                // Check for majority vote, then tie vote
                 if (thisNode.checkMajorityVote()) {
+                    // This node was elected leader
                     thisNode.log("Elected!");
-
                     thisNode.setType(NodeType.LEADER);
                     thisNode.hasVoted = false;
+                    thisNode.myLeader = null;
                     thisNode.randomizeElectionTimeout();
                     thisNode.resetTimeout();
                 } else if (thisNode.checkTieVote()) { // No majority but everyone has voted
@@ -365,6 +403,7 @@ public class RaftNode {
                 }
             }
 
+            // Added delay so we don't hog the synchronized methods
             try {
                 Thread.sleep(100);
             } catch (InterruptedException ignored) { }
