@@ -8,9 +8,11 @@ class PeerNode {
 
     private boolean hasVoted;
     private InetAddress address;
+    private boolean alive;
 
     PeerNode(String address) {
         this.hasVoted = false;
+        this.alive = true;
         try {
             this.address = InetAddress.getByName(address);
         } catch (UnknownHostException e) { e.printStackTrace(); }
@@ -24,6 +26,10 @@ class PeerNode {
         this.hasVoted = false;
     }
 
+    void alive() { this.alive = true; }
+
+    void dead() { this.alive = false; }
+
     InetAddress getAddress() {
         return address;
     }
@@ -31,6 +37,8 @@ class PeerNode {
     boolean hasVoted() {
         return hasVoted;
     }
+
+    boolean isAlive() { return alive; }
 
     boolean equals(String address) { return this.address.getHostAddress().equals(address); }
 }
