@@ -6,7 +6,7 @@ import java.net.InetAddress;
 /**
  * Thread that periodically broadcasts this node's IP address.
  */
-public class BroadcastActiveThread extends Thread {
+public class ActiveBroadcastThread extends Thread {
 
     /**
      * Period between broadcasts in seconds.
@@ -15,7 +15,7 @@ public class BroadcastActiveThread extends Thread {
 
     private RaftNode node;
 
-    public BroadcastActiveThread(RaftNode node) {
+    public ActiveBroadcastThread(RaftNode node) {
         this.node = node;
     }
 
@@ -39,7 +39,7 @@ public class BroadcastActiveThread extends Thread {
             socket.setBroadcast(true);
 
             InetAddress destination = InetAddress.getByName("255.255.255.255");
-            String message = node.getAddress().getHostAddress();
+            String message = node.getMyAddress().getHostAddress();
 
             while (true) {
                 broadcast(destination, message, socket);

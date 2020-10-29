@@ -8,7 +8,7 @@ import java.util.ArrayList;
 /**
  * Thread that receives broadcasted addresses to recognize new or existing peers.
  */
-public class BroadcastPassiveThread extends Thread {
+public class PassiveBroadcastThread extends Thread {
 
     /**
      * Size in bytes of the buffer to read incoming transmissions into.
@@ -23,7 +23,7 @@ public class BroadcastPassiveThread extends Thread {
 
     private RaftNode node;
 
-    public BroadcastPassiveThread(RaftNode node) {
+    public PassiveBroadcastThread(RaftNode node) {
         this.node = node;
         this.addresses = new ArrayList<>();
         try {
@@ -54,7 +54,6 @@ public class BroadcastPassiveThread extends Thread {
         for (String s : addresses)
             if (s.equals(message))
                 return;
-
         // Peer is new, add it
         PeerNode newPeer = new PeerNode(message);
         node.addNewPeer(newPeer);

@@ -30,7 +30,7 @@ public class RaftNode {
     private NodeType type;                  // The type of node this is
     private ArrayList<PeerNode> peerNodes;  // List of other nodes in the protocol
     private PeerNode myLeader;                      // Who is this node's leader
-    private InetAddress address;            // The address of this node
+    private InetAddress myAddress;            // The address of this node
 
     private boolean hasVoted;               // Has this node already voted (for leader election)
     private int voteCount;                  // How many votes does this node have (used for candidate nodes)
@@ -55,21 +55,30 @@ public class RaftNode {
         this.myLeader = null;
         this.peerNodes = new ArrayList<>();
         try {
-            this.address = InetAddress.getLocalHost();
+            this.myAddress = InetAddress.getLocalHost();
         } catch (UnknownHostException e) { e.printStackTrace(); }
     }
 
     private void setType(NodeType type) { this.type = type; }
 
-    private void incrementVoteCount() {
-        this.voteCount++;
+    /**
+     * Adds a newly created PeerNode to our list of Peers. Make sure to check that the peer does
+     * not exist yet (getPeer != null).
+     * @param peer The new peer to add.
+     */
+    synchronized void addNewPeer(PeerNode peer) {
+        String name = peer.getAddress().getCanonicalHostName().split("\\.")[0];
+        peerNodes.add(peer);
+        log("Discovered peer " + name + ".");
     }
 
-    NodeType getType() {
-        return type;
-    }
+    private void incrementVoteCount() { this.voteCount++; }
 
-    InetAddress getAddress() { return this.address; }
+    private void incrementTerm() { term++; }
+
+    NodeType getType() { return type; }
+
+    InetAddress getMyAddress() { return this.myAddress; }
 
     synchronized int getPeerCount() { return this.peerNodes.size(); }
 
@@ -89,9 +98,7 @@ public class RaftNode {
      * Reset the last updated to current time for election timeout
      * and heartbeat timeout
      */
-    private void resetTimeout(){
-        this.lastLeaderUpdate = new Date();
-    }
+    private void resetTimeout() { this.lastLeaderUpdate = new Date(); }
 
     /**
      * Generate a new random election timeout in the set range.
@@ -106,27 +113,6 @@ public class RaftNode {
 
         electionTimeout = random.nextInt(max - min + 1) + min;
     }
-
-    /**
-     * Adds a newly created PeerNode to our list of Peers. Make sure to check that the peer does
-     * not exist yet (getPeer != null).
-     * @param peer The new peer to add.
-     */
-    synchronized void addNewPeer(PeerNode peer) {
-        String name = peer.getAddress().getCanonicalHostName().split("\\.")[0];
-        peerNodes.add(peer);
-        log("Discovered peer " + name + ".");
-    }
-
-    private void incrementTerm() {
-        term++;
-    }
-
-//    private void newLeader() {
-//        randomizeElectionTimeout();
-//        hasVoted = false;
-//        resetTimeout();
-//    }
 
     /**
      * Send a heartbeat message to all of our peers.
@@ -172,7 +158,7 @@ public class RaftNode {
      * Check to see if candidate node has majority votes
      * @return true if has majority votes, false otherwise
      */
-    private boolean checkMajority() {
+    private boolean checkMajorityVote() {
         int majority = getPeerCount() / 2 + 1;
         return this.voteCount >= majority;
     }
@@ -337,12 +323,12 @@ public class RaftNode {
         RaftNode thisNode = new RaftNode();
 
         // Receive broadcasts
-        BroadcastPassiveThread broadcastPassiveThread = new BroadcastPassiveThread(thisNode);
-        broadcastPassiveThread.start();
+        PassiveBroadcastThread passiveBroadcastThread = new PassiveBroadcastThread(thisNode);
+        passiveBroadcastThread.start();
 
         // Start broadcasting
-        BroadcastActiveThread broadcastActiveThread = new BroadcastActiveThread(thisNode);
-        broadcastActiveThread.start();
+        ActiveBroadcastThread activeBroadcastThread = new ActiveBroadcastThread(thisNode);
+        activeBroadcastThread.start();
 
         // Receive messages
         PassiveMessageThread passiveMessageThread = new PassiveMessageThread(thisNode);
@@ -365,7 +351,7 @@ public class RaftNode {
 
             } else if (thisNode.type.equals(NodeType.CANDIDATE)) {
                 // Check for majority or tie vote
-                if (thisNode.checkMajority()) {
+                if (thisNode.checkMajorityVote()) {
                     thisNode.log("Elected!");
 
                     thisNode.setType(NodeType.LEADER);
