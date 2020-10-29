@@ -126,7 +126,6 @@ public class RaftNode {
         for (PeerNode peer : peerNodes)
             if (peer.isAlive())
                 count++;
-        log("Node count: " + (count + 1));
         return count + 1; // include local node
     }
 
@@ -211,23 +210,13 @@ public class RaftNode {
     }
 
     /**
-     * Check to see if the vote is stuck in a tie.
-     * @return true if we have gotten a VOTE_RESPONSE from every peer, false otherwise.
-     */
-    private synchronized boolean checkTieVote() {
-        for (PeerNode peer : peerNodes)
-            if (!peer.hasVoted())
-                return false;
-        return true;
-    }
-
-    /**
      * Start a leader election term. Change this node to candidate, increment term, and reset
      * all peers' votes.
      */
     private synchronized void leaderElection() {
         setType(NodeType.CANDIDATE);
         incrementTerm();
+        voteCount = 0;
 
         // Set all peer hasVoted attributes to false
         for (PeerNode peer : peerNodes)
@@ -240,7 +229,12 @@ public class RaftNode {
         // Request votes
         log("Requesting votes.");
         for (PeerNode peer : peerNodes) {
+            // Check to see if our election was cancelled
+            if (!this.type.equals(NodeType.CANDIDATE))
+                return;
+
             requestVote(peer);
+
             // Check for majority vote, then tie vote
             if (checkMajorityVote()) {
                 // This node was elected leader
@@ -326,12 +320,21 @@ public class RaftNode {
                 int peerTerm = (int) data;
 
                 // Determine response
-                if (peerTerm > term || !hasVoted) {
+                boolean vote = false;
+                if (this.type.equals(NodeType.FOLLOWER)) {
+                    if (peerTerm > term) {
+                        vote = true;
+                    } else { // peerTerm == term
+                        vote = !hasVoted;
+                    }
+                }
+
+                if (vote) {
                     hasVoted = true;
                     term = peerTerm;
                     log("Voted!");
                     return new Message(MessageType.VOTE_RESPONSE, true);
-                } else { // we voted for someone else already
+                } else {
                     return new Message(MessageType.VOTE_RESPONSE, false);
                 }
 
@@ -362,6 +365,11 @@ public class RaftNode {
                         hasVoted = false;
                         randomizeElectionTimeout();
                     }
+
+                    // If we are a candidate we need to stop our election
+                    if (!this.type.equals(NodeType.FOLLOWER))
+                        setType(NodeType.FOLLOWER);
+
                     resetTimeout();
                     return new Message(MessageType.APPEND_ENTRIES_RESPONSE, null);
                 }
