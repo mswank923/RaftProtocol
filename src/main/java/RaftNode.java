@@ -28,8 +28,8 @@ public class RaftNode {
     /**
      * Election timeout range (in seconds)
      */
-    static final int ELECTION_TIMEOUT_MIN = 4;
-    static final int ELECTION_TIMEOUT_MAX = 8;
+    static final int ELECTION_TIMEOUT_MIN = 5;
+    static final int ELECTION_TIMEOUT_MAX = 10;
 
     /**
      * Seconds before an election to begin a countdown.
@@ -53,6 +53,8 @@ public class RaftNode {
     private Date lastLeaderUpdate;         // Timestamp of last message from leader or candidate
     private int electionTimeout;           // Current term's election timeout in milliseconds
 
+    private boolean[] hasPrinted;          // Whether we have printed countdown yet
+
 
     /**
      * Constructor for the local node, sets its initial values.
@@ -73,6 +75,8 @@ public class RaftNode {
         try {
             this.myAddress = InetAddress.getLocalHost();
         } catch (UnknownHostException e) { e.printStackTrace(); }
+
+        this.hasPrinted = new boolean[ELECTION_COUNTDOWN_START];
     }
 
     /**
@@ -144,7 +148,10 @@ public class RaftNode {
     /**
      * Reset the time that a leader or candidate was last heard from.
      */
-    private void resetTimeout() { this.lastLeaderUpdate = new Date(); }
+    private void resetTimeout() {
+        this.lastLeaderUpdate = new Date();
+        this.hasPrinted = new boolean[ELECTION_COUNTDOWN_START];
+    }
 
     /**
      * Generate a new random election timeout in the set range.
@@ -191,7 +198,8 @@ public class RaftNode {
         long now = new Date().getTime();
         long delta = now - lastLeaderUpdate.getTime();
         int remainingSecs = (int) ((electionTimeout - delta) / 1000);
-        if (remainingSecs > 0 && remainingSecs <= ELECTION_COUNTDOWN_START) {
+        if (remainingSecs > 0 && remainingSecs <= ELECTION_COUNTDOWN_START && !hasPrinted[remainingSecs - 1]) {
+            hasPrinted[remainingSecs - 1] = true;
             if (remainingSecs == 1)
                 log("Beginning election in " + remainingSecs + " second.");
             else
