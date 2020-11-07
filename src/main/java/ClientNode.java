@@ -1,10 +1,7 @@
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.util.ArrayList;
 
 public class ClientNode {
@@ -34,7 +31,7 @@ public class ClientNode {
      * @return Address of leader
      */
     public InetAddress findLeader(){
-        return;
+        return null;
     }
 
     /**
@@ -63,7 +60,7 @@ public class ClientNode {
 
             // 4. Close socket
             socket.close();
-            processMessage(response, senderAddress);
+            processMessage(response);
         } catch (SocketTimeoutException e) { // Peer is dead (most likely the leader we stopped)
             return false;
         } catch (IOException | ClassNotFoundException ignored) {
