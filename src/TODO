@@ -1,24 +1,27 @@
-1. Fix socket timeout error when trying to connect to a dead leader
-
-2. Fix dockerfile name.
-
-
-
-Added:
-  - await response in RaftNode.sendMessage()
-  - send response in PassiveMessageThread
-  - moved MessageType processing logic to RaftNode.processMessage()
-  - randomNumberGenerator(max, min) --> randomizeElectionTimeout()
-  - Added log() for uniform output
-  - deleted Peer.type and Peer.lastUpdated attribute
-
-  - Changed new term mechanism:
-    - new term when leader election starts
-    - new term when request vote is received
-    - hasVoted false when new leader elected
+Leader Election:
+    1. Fix deadlock
+        a. Make each message single and atomic
 
 
+Log Replication:
+    1. Create Client Class
+        a. Create Broadcast thread (Track nodes)
+        b. Discover leader dynamically
+        c. Main method includes command line input (Add/Update, Retrieve, Delete)
+        d. Client attempts connection with leader to send the change.
+            If failed, assume leader is dead, remove address from list, try next address to find new leader.
 
-  if peer is on next term, vote yes
-  if peer is on same term, vote yes iff !hasVoted
+    2. Docker
+        a. Connect separate client container to existing docker network
+        b. Create dockerfile for client node
 
+    3. Add File I/O to RaftNode
+        a. Append to files
+        b. Read from files
+        c. Delete entry in file
+
+    4. Process append entry messages/ append entry response
+
+    5. Create LogEntry class for sending message from client to leader
+        a. Class has key-value pair
+        b. Enum for log operation (Retrieve, Update, Delete -- RUD)
