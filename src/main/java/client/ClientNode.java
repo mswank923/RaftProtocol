@@ -79,8 +79,21 @@ public class ClientNode {
         return true;
     }
 
+    /**
+     * Process a message received from a peer
+     * @param message The message received
+     */
     public void processMessage(Message message){
-        System.out.println("Hello");
+        MessageType msgType = message.getType();
+        Object data = message.getData();
+        switch(msgType){
+            case FIND_LEADER:
+                if (!(data instanceof InetAddress))
+                    throw new RuntimeException("Wrong data type for FIND_LEADER");
+
+                this.leaderAddress = (InetAddress) data;
+                break;
+        }
 
     }
 
