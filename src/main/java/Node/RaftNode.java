@@ -2,6 +2,7 @@ package Node;
 
 import static java.lang.Thread.sleep;
 
+import misc.*;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -334,7 +335,7 @@ public class RaftNode {
         Object data = message.getData();
 
         switch (type) {
-            case MessageType.VOTE_REQUEST:
+            case VOTE_REQUEST:
                 if (!(data instanceof Integer))
                     throw new RuntimeException("Wrong data type for VOTE_REQUEST!");
 
@@ -364,7 +365,7 @@ public class RaftNode {
                 sendMessage(sourcePeer, response);
                 break;
 
-            case MessageType.VOTE_RESPONSE:
+            case VOTE_RESPONSE:
                 // Type check
                 if (!(data instanceof Boolean))
                     throw new RuntimeException("Wrong data type for VOTE_RESPONSE!");
@@ -382,7 +383,7 @@ public class RaftNode {
                 checkElectionResult();
                 break;
 
-            case MessageType.APPEND_ENTRIES:
+            case APPEND_ENTRIES:
                 if (data == null) { // null indicates this was just a heartbeat
                     if (sourcePeer.equals(myLeader)) { // From current leader
                         log("Heard heartbeat.");
@@ -406,7 +407,7 @@ public class RaftNode {
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES!");
                 }
 
-            case MessageType.APPEND_ENTRIES_RESPONSE:
+            case APPEND_ENTRIES_RESPONSE:
                 break;
 
         }

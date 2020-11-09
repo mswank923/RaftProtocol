@@ -25,7 +25,7 @@ public class PassiveBroadcastThread extends Thread {
 
     private RaftNode node;
 
-    public PassiveBroadcastThread(RaftNode node) {
+    PassiveBroadcastThread(RaftNode node) {
         this.node = node;
         this.addresses = new ArrayList<>();
         try {
