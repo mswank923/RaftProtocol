@@ -1,8 +1,12 @@
+package client;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.*;
 import java.util.ArrayList;
+
+import static java.lang.Thread.sleep;
 
 public class ClientNode {
 
@@ -31,7 +35,7 @@ public class ClientNode {
      * @return Address of leader
      */
     public InetAddress findLeader(){
-        return null;
+
     }
 
     /**
@@ -40,35 +44,26 @@ public class ClientNode {
      * @return
      */
     public boolean sendMessage(InetAddress leaderAddress, Message message){
-        // Note: Only MessageTypes supported to send here are APPEND_ENTRIES and VOTE_REQUEST
-        Socket socket = new Socket();
-        try {
+        try (Socket socket = new Socket()) {
+
             // 1. Socket opens
             InetSocketAddress destination = new InetSocketAddress(leaderAddress, RaftNode.MESSAGE_PORT);
-            socket.connect(destination, 500);
+            socket.connect(destination, 300);
 
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
             ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
-            // 2. Write to output
-            out.writeObject(message);
-            socket.shutdownOutput();
+            // 2. Write message to output
+            out.writeUnshared(message);
 
-            // 3. Await response (response = input.readObject())
-            Message response = (Message) in.readObject();
-            String senderAddress = socket.getInetAddress().getHostAddress();
-
-            // 4. Close socket
-            socket.close();
-            processMessage(response);
+            // 3. Wait until socket is closed (peer closes when it's done receiving the data)
+            while (in.read() != -1) {
+                sleep(50);
+            }
         } catch (SocketTimeoutException e) { // Peer is dead (most likely the leader we stopped)
             return false;
-        } catch (IOException | ClassNotFoundException ignored) {
+        } catch (IOException | InterruptedException ignored) { }
 
-        } finally {
-            if (!socket.isClosed())
-                try { socket.close(); } catch (IOException ignored) { }
-        }
         return true;
     }
 

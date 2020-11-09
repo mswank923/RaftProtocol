@@ -1,3 +1,5 @@
+package Node;
+
 public class MessageHandlerThread extends Thread {
     private RaftNode node;
     private Message message;

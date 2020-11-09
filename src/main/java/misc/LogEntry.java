@@ -1,3 +1,5 @@
+package misc;
+
 /**
  * This class is used as an entry for a message
  * and defines what to do with that entry

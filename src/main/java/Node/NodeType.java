@@ -1,3 +1,5 @@
+package Node;
+
 public enum NodeType{
 
     /**

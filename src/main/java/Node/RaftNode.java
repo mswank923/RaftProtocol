@@ -1,3 +1,5 @@
+package Node;
+
 import static java.lang.Thread.sleep;
 
 import java.io.IOException;
@@ -90,7 +92,7 @@ public class RaftNode {
     private void setType(NodeType type) { this.type = type; }
 
     /**
-     * Adds a newly created PeerNode to our list of Peers. Assumes that the peer does not yet exist.
+     * Adds a newly created Node.PeerNode to our list of Peers. Assumes that the peer does not yet exist.
      * @param peer The new peer to add.
      */
     synchronized void addNewPeer(PeerNode peer) {
@@ -140,9 +142,9 @@ public class RaftNode {
     }
 
     /**
-     * Fetch a PeerNode from peerList based on its address. Returns null if the Peer is not known.
+     * Fetch a Node.PeerNode from peerList based on its address. Returns null if the Peer is not known.
      * @param address Address of the peer.
-     * @return The PeerNode, or null if not found.
+     * @return The Node.PeerNode, or null if not found.
      */
     private synchronized PeerNode getPeer(String address) {
         for (PeerNode peer : peerNodes)
@@ -332,7 +334,7 @@ public class RaftNode {
         Object data = message.getData();
 
         switch (type) {
-            case VOTE_REQUEST:
+            case MessageType.VOTE_REQUEST:
                 if (!(data instanceof Integer))
                     throw new RuntimeException("Wrong data type for VOTE_REQUEST!");
 
@@ -362,7 +364,7 @@ public class RaftNode {
                 sendMessage(sourcePeer, response);
                 break;
 
-            case VOTE_RESPONSE:
+            case MessageType.VOTE_RESPONSE:
                 // Type check
                 if (!(data instanceof Boolean))
                     throw new RuntimeException("Wrong data type for VOTE_RESPONSE!");
@@ -380,7 +382,7 @@ public class RaftNode {
                 checkElectionResult();
                 break;
 
-            case APPEND_ENTRIES:
+            case MessageType.APPEND_ENTRIES:
                 if (data == null) { // null indicates this was just a heartbeat
                     if (sourcePeer.equals(myLeader)) { // From current leader
                         log("Heard heartbeat.");
@@ -404,14 +406,14 @@ public class RaftNode {
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES!");
                 }
 
-            case APPEND_ENTRIES_RESPONSE:
+            case MessageType.APPEND_ENTRIES_RESPONSE:
                 break;
 
         }
     }
 
     /**
-     * Outputs a log message to stdout after tagging it with the local node's NodeType.
+     * Outputs a log message to stdout after tagging it with the local node's Node.NodeType.
      * @param message The message to send to log.
      */
     void log(String message) { System.out.println("[" + type.toString() + "] " + message); }

@@ -1,3 +1,5 @@
+package client;
+
 public class PassiveClientMessageThread extends Thread{
 
     private ClientNode node;

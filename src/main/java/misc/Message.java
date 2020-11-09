@@ -1,3 +1,5 @@
+package misc;
+
 import java.io.Serializable;
 
 /**
@@ -11,8 +13,8 @@ class Message implements Serializable {
     private MessageType type;
 
     /**
-     * The data being sent along with the message. Each MessageType has its corresponding data.
-     * The receiving entity should use the Message's type to determine how to cast the data to its
+     * The data being sent along with the message. Each misc.MessageType has its corresponding data.
+     * The receiving entity should use the misc.Message's type to determine how to cast the data to its
      * proper type.
      */
     private Object data;

@@ -18,13 +18,13 @@ Log Replication:
         a. Connect separate client container to existing docker network
         b. Create dockerfile for client node
 
-    3. Add File I/O to RaftNode
+    3. Add File I/O to Node.RaftNode
         a. Append to files
         b. Read from files
         c. Delete entry in file
 
     4. Process append entry messages/ append entry response
 
-    5. Create LogEntry class for sending message from client to leader
+    5. Create misc.LogEntry class for sending message from client to leader
         a. Class has key-value pair
         b. Enum for log operation (Retrieve, Update, Delete -- RUD)
