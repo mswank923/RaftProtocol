@@ -43,8 +43,11 @@ public class ClientNode {
         // Send FIND_LEADER message to random peer
         Message message = new Message(MessageType.FIND_LEADER, null);
         String peer = peers.get(0);
-        InetAddress address = InetAddress.getByName(peer);
-        sendMessage(address, message);
+        leaderAddress = InetAddress.getByName(peer);
+        if (!sendMessage(message)) {
+            peers.remove(0);
+            findLeader();
+        }
     }
 
     /**
