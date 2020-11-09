@@ -1,4 +1,5 @@
 package Node;
+import misc.Message;
 
 public class MessageHandlerThread extends Thread {
     private RaftNode node;

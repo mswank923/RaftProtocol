@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import Node.*;
 
 /**
  * Thread that receives broadcasted addresses used for client to recognize/find the leader

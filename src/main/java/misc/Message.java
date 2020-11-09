@@ -5,7 +5,7 @@ import java.io.Serializable;
 /**
  * A class representing a message from one node to another.
  */
-class Message implements Serializable {
+public class Message implements Serializable {
 
     /**
      * The type of message being communicated.
@@ -19,12 +19,12 @@ class Message implements Serializable {
      */
     private Object data;
 
-    Message(MessageType type, Object data) {
+    public Message(MessageType type, Object data) {
         this.type = type;
         this.data = data;
     }
 
-    MessageType getType() { return type; }
+    public MessageType getType() { return type; }
 
-    Object getData() { return data; }
+    public Object getData() { return data; }
 }

@@ -1,6 +1,7 @@
 package Node;
 
 import static java.lang.Thread.sleep;
+import static misc.MessageType.APPEND_ENTRIES_RESPONSE;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -13,6 +14,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Random;
+import misc.*;
 
 /**
  * This class represents the local node within the raft protocol.
@@ -22,12 +24,12 @@ public class RaftNode {
     /**
      * Port on which to broadcast UDP packets. Must be exposed local and remote.
      */
-    static final int BROADCAST_PORT = 6788;
+    public static final int BROADCAST_PORT = 6788;
 
     /**
      * Port on which to perform TCP communications. Must be exposed local and remote.
      */
-    static final int MESSAGE_PORT = 6789;
+    public static final int MESSAGE_PORT = 6789;
 
     /**
      * Election timeout range (in seconds)
@@ -334,7 +336,7 @@ public class RaftNode {
         Object data = message.getData();
 
         switch (type) {
-            case MessageType.VOTE_REQUEST:
+            case VOTE_REQUEST:
                 if (!(data instanceof Integer))
                     throw new RuntimeException("Wrong data type for VOTE_REQUEST!");
 
@@ -364,7 +366,7 @@ public class RaftNode {
                 sendMessage(sourcePeer, response);
                 break;
 
-            case MessageType.VOTE_RESPONSE:
+            case VOTE_RESPONSE:
                 // Type check
                 if (!(data instanceof Boolean))
                     throw new RuntimeException("Wrong data type for VOTE_RESPONSE!");
@@ -382,7 +384,7 @@ public class RaftNode {
                 checkElectionResult();
                 break;
 
-            case MessageType.APPEND_ENTRIES:
+            case APPEND_ENTRIES:
                 if (data == null) { // null indicates this was just a heartbeat
                     if (sourcePeer.equals(myLeader)) { // From current leader
                         log("Heard heartbeat.");
@@ -398,7 +400,7 @@ public class RaftNode {
                         setType(NodeType.FOLLOWER);
 
                     resetTimeout();
-                    sendMessage(sourcePeer, new Message(MessageType.APPEND_ENTRIES_RESPONSE, null));
+                    sendMessage(sourcePeer, new Message(APPEND_ENTRIES_RESPONSE, null));
                     break;
                 }
                 // else if (data instanceof Entry) {
@@ -406,7 +408,7 @@ public class RaftNode {
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES!");
                 }
 
-            case MessageType.APPEND_ENTRIES_RESPONSE:
+            case APPEND_ENTRIES_RESPONSE:
                 break;
 
         }
