@@ -19,15 +19,15 @@ public class LogEntry {
     /**
      * The value to the key-value pair we are looking at
      */
-    private Object value;
+    private int value;
 
-    public LogEntry(LogOp action, String key, Object value){
+    public LogEntry(LogOp action, String key, int value){
         this.action = action;
         this.key = key;
         this.value = value;
     }
 
-    public void commit(){
+    public void commit() {
 
     }
 }

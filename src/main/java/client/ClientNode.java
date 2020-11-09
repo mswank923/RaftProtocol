@@ -52,7 +52,7 @@ public class ClientNode {
      * @param message
      * @return
      */
-    public boolean sendMessage(InetAddress leaderAddress, Message message){
+    public boolean sendMessage(Message message){
         try (Socket socket = new Socket()) {
 
             // 1. Socket opens
@@ -81,9 +81,15 @@ public class ClientNode {
 
     }
 
-    private void printHelp() {
+    private static void printHelp() {
         String help = "";
         System.out.println(help);
+    }
+
+    private static boolean assertTrue(boolean condition) {
+        if (!condition)
+            printHelp();
+        return !condition;
     }
 
     public static void main(String[] args) {
@@ -104,24 +110,52 @@ public class ClientNode {
         while((line = input.nextLine()) != null) {
             // Process command
             String[] split = line.split("\\s");
-            if (!(split.length == 2 || split.length == 3)) {
-                thisNode.printHelp();
+
+            if (assertTrue(split.length == 2 || split.length == 3))
                 continue;
-            }
+            if (assertTrue(split[0] != null && split[1] != null))
+                continue;
 
             String command = split[0].toLowerCase();
             String key = split[1];
 
+            LogEntry entry;
             switch (command) {
                 case "get":
+                    if (assertTrue(split.length == 2))
+                        continue;
+                    entry = new LogEntry(LogOp.RETRIEVE, key, -1);
                     break;
                 case "set":
+                    if (assertTrue(split.length == 3))
+                        continue;
+
+                    int value;
+                    try {
+                        value = Integer.parseInt(split[2]);
+                    } catch (NumberFormatException e) {
+                        printHelp();
+                        continue;
+                    }
+
+                    entry = new LogEntry(LogOp.UPDATE, key, value);
                     break;
                 case "del":
+                    if (assertTrue(split.length == 2))
+                        continue;
+                    entry = new LogEntry(LogOp.DELETE, key, -1);
                     break;
                 default:
-                    thisNode.printHelp();
-                    break;
+                    printHelp();
+                    continue;
+            }
+
+            Message message = new Message(MessageType.APPEND_ENTRIES, entry);
+            if (!thisNode.sendMessage(message)) { // if sending fails, find leader & try again
+                try {
+                    thisNode.findLeader();
+                } catch (UnknownHostException e) { e.printStackTrace(); }
+                thisNode.sendMessage(message);
             }
         }
 
