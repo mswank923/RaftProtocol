@@ -1,11 +1,3 @@
-Leader Election:
-    1. Fix deadlock
-        a. Make each message single and atomic
-
-        ISSUE: Candidate hangs on vote request to another candidate because their message sockets
-        are busy
-
-
 Log Replication:
     1. Create Client Class
         a. Create Broadcast thread (Track nodes)
