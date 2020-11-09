@@ -18,11 +18,10 @@ public class PassiveMessageThread extends Thread {
     @Override
     public void run() {
         // Process incoming communications.
-        // Note: only incoming messages are VOTE_REQUEST and APPEND_ENTRIES
         while (true) {
+            Message message = null;
+            String senderAddress = null;
             // 1. Socket opens
-            Message message;
-            String senderAddress;
             try (
                 ServerSocket listener = new ServerSocket(RaftNode.MESSAGE_PORT);
                 Socket socket = listener.accept();
@@ -30,23 +29,14 @@ public class PassiveMessageThread extends Thread {
                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())
             ) {
                 // 2. Read message from input
-                message = (Message) in.readObject();
+                message = (Message) in.readUnshared();
                 senderAddress = socket.getInetAddress().getHostAddress();
 
-                // 3. Process message & prepare response
-                Message response = node.processMessage(message, senderAddress);
+                // 3. Close socket
+            } catch (IOException | ClassNotFoundException ignored) { }
 
-                // 4. Write response
-                out.writeObject(response);
-
-                socket.shutdownOutput();
-
-                // 5. Wait until socket is closed
-                while (in.read() != -1) {
-                    sleep(50);
-                }
-
-            } catch (IOException | ClassNotFoundException | InterruptedException ignored) { }
+            // 4. Process message
+            new MessageHandlerThread(node, message, senderAddress).start();
         }
     }
 }
