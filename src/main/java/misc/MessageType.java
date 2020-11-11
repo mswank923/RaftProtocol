@@ -1,3 +1,5 @@
+package misc;
+
 public enum MessageType {
     /**
      * Message is a request for a vote from a candidate node. The corresponding data will be the id
@@ -21,5 +23,10 @@ public enum MessageType {
      * Message is a response to an append entries request, verifying that we have received the
      * entries.
      */
-    APPEND_ENTRIES_RESPONSE
+    APPEND_ENTRIES_RESPONSE,
+
+    /**
+     * Message is a request to know who the current leader is.
+     */
+    FIND_LEADER
 }

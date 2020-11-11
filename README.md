@@ -21,7 +21,7 @@ docker run -it raft-node /bin/bash
 ```
 
 ##Docker-compose
-Start 5 docker containers each running RaftNode:
+Start 5 docker containers each running Node.RaftNode:
 ```
 docker-compose -f docker-compose-raftprotocol.yml up
 ```

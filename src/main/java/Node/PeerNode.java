@@ -1,8 +1,10 @@
+package Node;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 /**
- * A PeerNode represents a neighbor of a RaftNode. A list of PeerNodes are stored by the RaftNode.
+ * A Node.PeerNode represents a neighbor of a Node.RaftNode. A list of PeerNodes are stored by the Node.RaftNode.
  */
 class PeerNode {
 

@@ -1,3 +1,5 @@
+package Node;
+
 /**
  * Thread that handles periodic message sending.
  */

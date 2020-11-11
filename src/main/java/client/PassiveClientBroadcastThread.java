@@ -1,36 +1,34 @@
+package client;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import Node.*;
 
 /**
- * Thread that receives broadcasted addresses to recognize new or existing peers.
+ * Thread that receives broadcasted addresses used for client to recognize/find the leader
  */
-public class PassiveBroadcastThread extends Thread {
+public class PassiveClientBroadcastThread extends Thread{
 
     /**
      * Size in bytes of the buffer to read incoming transmissions into.
      */
     private static final int BUFSIZE = 1024;
 
-    /**
-     * Array of addresses already found, so that we do not have to keep using node.getPeer() and
-     * blocking all the threads constantly.
-     */
-    private ArrayList<String> addresses;
+    private ClientNode node;
 
-    private RaftNode node;
-
-    public PassiveBroadcastThread(RaftNode node) {
-        this.node = node;
-        this.addresses = new ArrayList<>();
-        try {
-            this.addresses.add(InetAddress.getLocalHost().getHostAddress());
-        } catch (UnknownHostException e) { e.printStackTrace(); }
+    public PassiveClientBroadcastThread(ClientNode clientNode){
+        this.node = clientNode;
     }
 
+    /**
+     * Receive a packet from a socket
+     * @param socket socket we are receiving from
+     * @return a string with the packet data
+     */
     private String receive(DatagramSocket socket) {
         byte[] buffer = new byte[BUFSIZE];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
@@ -41,6 +39,10 @@ public class PassiveBroadcastThread extends Thread {
         return new String(packet.getData());
     }
 
+    /**
+     * Add broadcasted nodes to client's peer list
+     * @param message The address of a peer
+     */
     private void process(String message) {
         // message is the IP address that belongs to a peer node (or this node)
 
@@ -50,14 +52,13 @@ public class PassiveBroadcastThread extends Thread {
                 return;
         } catch (UnknownHostException e) { e.printStackTrace(); }
 
+        ArrayList<String> addresses = node.getPeers();
         // Filter out known addresses
         for (String s : addresses)
             if (s.equals(message))
                 return;
         // Peer is new, add it
-        PeerNode newPeer = new PeerNode(message);
-        node.addNewPeer(newPeer);
-        addresses.add(message);
+        node.addPeer(message);
     }
 
     @Override
