@@ -199,7 +199,7 @@ public class RaftNode {
         Message message = new Message(MessageType.APPEND_ENTRIES, null);
 
         for (PeerNode peer : peerNodes)
-            if (!sendMessage(peer, message) && peer.isAlive())
+            if (!sendMessage(peer.getAddress(), message) && peer.isAlive())
                 peer.dead();
     }
 
@@ -209,7 +209,7 @@ public class RaftNode {
     private synchronized void requestVote(PeerNode peer) {
         Message message = new Message(MessageType.VOTE_REQUEST, this.term);
 
-        if (!sendMessage(peer, message) && peer.isAlive())
+        if (!sendMessage(peer.getAddress(), message) && peer.isAlive())
             peer.dead();
     }
 
@@ -231,23 +231,6 @@ public class RaftNode {
         }
         return now - lastLeaderUpdate.getTime() > electionTimeout;
     }
-
-//    /**
-//     * Check to see if candidate node has the majority vote.
-//     * @return true if has majority votes, false otherwise.
-//     */
-//    private boolean checkMajorityVote(int nodeCount) {
-//        int majority = nodeCount / 2 + 1;
-//        return this.voteCount >= majority;
-//    }
-
-//    /**
-//     * Check if every node has voted.
-//     * @return true if every node has voted.
-//     */
-//    private boolean checkTieVote(int nodeCount) {
-//        return nodeCount == totalVotes;
-//    }
 
     void checkElectionResult() {
         if (type.equals(NodeType.LEADER))
@@ -306,15 +289,15 @@ public class RaftNode {
 
     /**
      * Open a socket and send a message. Returns success status.
-     * @param peer Destination Peer.
+     * @param address Destination address.
      * @param message Message to send.
      * @return Whether successful or not. false indicates a dead node.
      */
-    boolean sendMessage(PeerNode peer, Message message) {
+    boolean sendMessage(InetAddress address, Message message) {
         try (Socket socket = new Socket()) {
 
             // 1. Socket opens
-            InetSocketAddress destination = new InetSocketAddress(peer.getAddress(), MESSAGE_PORT);
+            InetSocketAddress destination = new InetSocketAddress(address, MESSAGE_PORT);
             socket.connect(destination, 300);
 
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -330,31 +313,6 @@ public class RaftNode {
         } catch (IOException | InterruptedException ignored) { }
 
         return true;
-    }
-
-    /**
-     * Send a message to the client node
-     * @param clientAddress Address of the client
-     * @param message The message to send
-     */
-    void sendLeaderMessage(InetAddress clientAddress, Message message){
-        try (Socket socket = new Socket()) {
-
-            // 1. Socket opens
-            InetSocketAddress destination = new InetSocketAddress(clientAddress, MESSAGE_PORT);
-            socket.connect(destination, 300);
-
-            ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-
-            // 2. Write message to output
-            out.writeUnshared(message);
-
-            // 3. Wait until socket is closed (peer closes when it's done receiving the data)
-            while (in.read() != -1) {
-                sleep(50);
-            }
-        } catch (IOException | InterruptedException ignored) { }
     }
 
     /**

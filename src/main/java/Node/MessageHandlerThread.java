@@ -38,7 +38,7 @@ public class MessageHandlerThread extends Thread {
                 else // else send my leader's address
                     msg = new Message(FIND_LEADER, node.getMyLeader().getAddress());
 
-                node.sendLeaderMessage(clientAddress, msg);
+                node.sendMessage(clientAddress, msg);
             } catch (UnknownHostException e) { e.printStackTrace(); }
             return;
         }
@@ -78,7 +78,7 @@ public class MessageHandlerThread extends Thread {
                     response = new Message(MessageType.VOTE_RESPONSE, false);
                 }
 
-                node.sendMessage(sourcePeer, response);
+                node.sendMessage(sourcePeer.getAddress(), response);
                 break;
 
             case VOTE_RESPONSE:
@@ -115,7 +115,8 @@ public class MessageHandlerThread extends Thread {
                         node.setType(NodeType.FOLLOWER);
 
                     node.resetTimeout();
-                    node.sendMessage(sourcePeer, new Message(APPEND_ENTRIES_RESPONSE, null));
+                    Message nullResponse = new Message(APPEND_ENTRIES_RESPONSE, null);
+                    node.sendMessage(sourcePeer.getAddress(), nullResponse);
                     break;
                 }
                 // else if (data instanceof Entry) {
