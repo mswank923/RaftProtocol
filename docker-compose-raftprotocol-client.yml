@@ -1,0 +1,30 @@
+# Test this without rebuilding the docker image $> docker-compose up
+# Test this with rebuilding the docker image $> docker-compose up --build
+
+version: '3.7'
+
+services:
+  node1:
+    build:
+      context: .
+      dockerfile: Dockerfile-raftprotocol
+    image: raft-node:latest
+    container_name: node1
+    environment:
+      - TERM=xterm
+    working_dir: /csci251
+    networks:
+      - raft_protocol_network
+    ports:
+      - 6788
+      - 6789
+    command:
+      - /bin/bash
+      - -c
+      - |
+        echo "Client Started!"
+        ./client-start.sh
+        tail -f /dev/null
+
+networks:
+  raft_protocol_network:

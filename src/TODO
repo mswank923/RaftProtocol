@@ -1,12 +1,13 @@
-Leader Election:
-    1. Fix deadlock
-        a. Make each message single and atomic
-
-        ISSUE: Candidate hangs on vote request to another candidate because their message sockets
-        are busy
-
-
 Log Replication:
+    3. Add File I/O to Node.RaftNode
+        a. Append to files
+        b. Read from files
+        c. Delete entry in file
+
+    4. Process append entry messages/ append entry response
+
+
+Done:
     1. Create Client Class
         a. Create Broadcast thread (Track nodes)
         b. Discover leader dynamically
@@ -15,15 +16,8 @@ Log Replication:
             If failed, assume leader is dead, remove address from list, try next address to find new leader.
 
     2. Docker
-        a. Connect separate client container to existing docker network
-        b. Create dockerfile for client node
-
-    3. Add File I/O to Node.RaftNode
-        a. Append to files
-        b. Read from files
-        c. Delete entry in file
-
-    4. Process append entry messages/ append entry response
+            a. Connect separate client container to existing docker network
+            b. Create dockerfile for client node
 
     5. Create misc.LogEntry class for sending message from client to leader
         a. Class has key-value pair
