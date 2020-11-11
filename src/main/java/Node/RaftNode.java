@@ -93,7 +93,13 @@ public class RaftNode {
      * Set the type of the local node.
      * @param type The new type.
      */
-    private void setType(NodeType type) { this.type = type; }
+    void setType(NodeType type) { this.type = type; }
+
+    void setHasVoted(boolean hasVoted) { this.hasVoted = hasVoted; }
+
+    void setTerm(int term) { this.term = term; }
+
+    void setMyLeader(PeerNode leader) { this.myLeader = leader; }
 
     /**
      * Adds a newly created Node.PeerNode to our list of Peers. Assumes that the peer does not yet exist.
@@ -111,9 +117,9 @@ public class RaftNode {
      * rest from REQUEST_VOTE messages to other peers. A majority vote allows a CANDIDATE to promote
      * to LEADER.
      */
-    private void incrementVoteCount() { this.voteCount++; }
+    void incrementVoteCount() { this.voteCount++; }
 
-    private void incrementTotalVotes() { this.totalVotes++; }
+    void incrementTotalVotes() { this.totalVotes++; }
 
     /**
      * Move on to the next term number. Occurs when node promotes to CANDIDATE, or when hearing from
@@ -125,7 +131,13 @@ public class RaftNode {
      * Get the current type of the local node.
      * @return The current node type.
      */
-    NodeType getType() { return type; }
+    NodeType getType() { return this.type; }
+
+    PeerNode getMyLeader() { return this.myLeader; }
+
+    int getTerm() { return this.term; }
+
+    boolean getHasVoted() { return this.hasVoted; }
 
     /**
      * Get the address of the local node.
@@ -150,7 +162,7 @@ public class RaftNode {
      * @param address Address of the peer.
      * @return The Node.PeerNode, or null if not found.
      */
-    private synchronized PeerNode getPeer(String address) {
+    synchronized PeerNode getPeer(String address) {
         for (PeerNode peer : peerNodes)
             if (peer.equals(address))
                 return peer;
@@ -160,7 +172,7 @@ public class RaftNode {
     /**
      * Reset the time that a leader or candidate was last heard from.
      */
-    private void resetTimeout() {
+    void resetTimeout() {
         this.lastLeaderUpdate = new Date();
         this.hasPrinted = new boolean[ELECTION_COUNTDOWN_START];
     }
@@ -168,7 +180,7 @@ public class RaftNode {
     /**
      * Generate a new random election timeout in the set range.
      */
-    private void randomizeElectionTimeout() {
+    void randomizeElectionTimeout() {
         log("Randomizing election timeout.");
         Random random = new Random();
 
@@ -237,7 +249,7 @@ public class RaftNode {
 //        return nodeCount == totalVotes;
 //    }
 
-    private void checkElectionResult() {
+    void checkElectionResult() {
         if (type.equals(NodeType.LEADER))
             return;
 
@@ -298,7 +310,7 @@ public class RaftNode {
      * @param message Message to send.
      * @return Whether successful or not. false indicates a dead node.
      */
-    private boolean sendMessage(PeerNode peer, Message message) {
+    boolean sendMessage(PeerNode peer, Message message) {
         try (Socket socket = new Socket()) {
 
             // 1. Socket opens
@@ -312,9 +324,7 @@ public class RaftNode {
             out.writeUnshared(message);
 
             // 3. Wait until socket is closed (peer closes when it's done receiving the data)
-            while (in.read() != -1) {
-                sleep(50);
-            }
+            while (in.read() != -1) { sleep(50); }
         } catch (SocketTimeoutException e) { // Peer is dead (most likely the leader we stopped)
             return false;
         } catch (IOException | InterruptedException ignored) { }
@@ -327,7 +337,7 @@ public class RaftNode {
      * @param clientAddress Address of the client
      * @param message The message to send
      */
-    private void sendLeaderMessage(InetAddress clientAddress, Message message){
+    void sendLeaderMessage(InetAddress clientAddress, Message message){
         try (Socket socket = new Socket()) {
 
             // 1. Socket opens
@@ -345,117 +355,6 @@ public class RaftNode {
                 sleep(50);
             }
         } catch (IOException | InterruptedException ignored) { }
-    }
-
-    /**
-     * Process a received Message object, and send a response if appropriate.
-     * @param message The Message that was received.
-     * @param sourceAddress The address of the source (sender) of the message.
-     */
-    synchronized void processMessage(Message message, String sourceAddress) {
-
-        MessageType type = message.getType();
-        Object data = message.getData();
-
-        //Check to see if we receive a message from a peer (not a client)
-        if(!(type.equals(FIND_LEADER))) {
-            PeerNode sourcePeer = getPeer(sourceAddress);
-            if (sourcePeer == null)
-                throw new RuntimeException("Received message from unknown peer!");
-            else if (!sourcePeer.isAlive())
-                sourcePeer.alive();
-
-            switch (type) {
-                case VOTE_REQUEST:
-                    if (!(data instanceof Integer))
-                        throw new RuntimeException("Wrong data type for VOTE_REQUEST!");
-
-                    resetTimeout();
-
-                    int peerTerm = (int) data;
-
-                    // Determine response
-                    boolean vote = false;
-                    if (this.type.equals(NodeType.FOLLOWER)) {
-                        if (peerTerm > term)
-                            vote = true;
-                        else // peerTerm == term
-                            vote = !hasVoted;
-                    }
-
-                    Message response;
-                    if (vote) {
-                        hasVoted = true;
-                        term = peerTerm;
-                        log("Voted!");
-                        response = new Message(MessageType.VOTE_RESPONSE, true);
-                    } else {
-                        response = new Message(MessageType.VOTE_RESPONSE, false);
-                    }
-
-                    sendMessage(sourcePeer, response);
-                    break;
-
-                case VOTE_RESPONSE:
-                    // Type check
-                    if (!(data instanceof Boolean))
-                        throw new RuntimeException("Wrong data type for VOTE_RESPONSE!");
-
-                    log("Received vote.");
-
-                    // Did we get the vote?
-                    if ((boolean) data)
-                        incrementVoteCount();
-
-                    // Update voted status for the peer
-                    sourcePeer.voted();
-                    incrementTotalVotes();
-
-                    checkElectionResult();
-                    break;
-
-                case APPEND_ENTRIES:
-                    if (data == null) { // null indicates this was just a heartbeat
-                        if (sourcePeer.equals(myLeader)) { // From current leader
-                            log("Heard heartbeat.");
-                        } else { // From new leader (indicates new term)
-                            log("New leader!");
-                            myLeader = sourcePeer;
-                            hasVoted = false;
-                            randomizeElectionTimeout();
-                        }
-
-                        // If we are a candidate we need to stop our election
-                        if (!this.type.equals(NodeType.FOLLOWER))
-                            setType(NodeType.FOLLOWER);
-
-                        resetTimeout();
-                        sendMessage(sourcePeer, new Message(APPEND_ENTRIES_RESPONSE, null));
-                        break;
-                    }
-                    // else if (data instanceof Entry) {
-                    else {
-                        throw new RuntimeException("Wrong data type for APPEND_ENTRIES!");
-                    }
-
-                case APPEND_ENTRIES_RESPONSE:
-                    break;
-            }
-        }else{                                                  //Message received from client node
-            try {
-                InetAddress clientAddress = InetAddress.getByName(sourceAddress);
-                Message msg;
-                if (this.type.equals(NodeType.LEADER)) {            //If I am the leader send my address
-                    msg = new Message(FIND_LEADER, this.myAddress);
-                } else {                                            //else send my leader's address
-                    msg = new Message(FIND_LEADER, myLeader.getAddress());
-                }
-                sendLeaderMessage(clientAddress, msg);
-            }catch(UnknownHostException e){ e.printStackTrace(); }
-        }
-
-
-
     }
 
     /**
