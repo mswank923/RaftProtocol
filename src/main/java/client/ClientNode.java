@@ -97,11 +97,23 @@ public class ClientNode {
 
     }
 
+    /**
+     * Print help message for cases where cli is not correct
+     */
     private static void printHelp() {
-        String help = "";
+        String help = "Commands:\n" +
+                "get <key>: request a value of a certain key\n" +
+                "set <key> <value>: request to update/add a value for a key\n" +
+                "del <key>: request to remove a key-value pair\n";
         System.out.println(help);
     }
 
+    /**
+     * Assert that CLI is of proper form.
+     * If it is not, then print help statement
+     * @param condition Condition to satisfy proper form
+     * @return true if condition is not met, false otherwise
+     */
     private static boolean assertTrue(boolean condition) {
         if (!condition)
             printHelp();
