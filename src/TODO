@@ -1,4 +1,8 @@
 Log Replication:
+    2. Docker
+            a. Connect separate client container to existing docker network
+            b. Create dockerfile for client node
+
     3. Add File I/O to Node.RaftNode
         a. Append to files
         b. Read from files
@@ -14,10 +18,6 @@ Done:
         c. Main method includes command line input (Add/Update, Retrieve, Delete)
         d. Client attempts connection with leader to send the change.
             If failed, assume leader is dead, remove address from list, try next address to find new leader.
-
-    2. Docker
-            a. Connect separate client container to existing docker network
-            b. Create dockerfile for client node
 
     5. Create misc.LogEntry class for sending message from client to leader
         a. Class has key-value pair

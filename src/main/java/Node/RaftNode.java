@@ -4,6 +4,14 @@ import static java.lang.Thread.sleep;
 import static misc.MessageType.APPEND_ENTRIES_RESPONSE;
 import static misc.MessageType.FIND_LEADER;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.util.HashMap;
 import misc.*;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -45,25 +53,31 @@ public class RaftNode {
     static final int ELECTION_COUNTDOWN_START = 0;
 
     /**
+     * Name of the cache file to store keys & values in.
+     */
+    static final String CACHE_FILENAME = "cache.txt";
+
+    /**
      * Attributes
      */
 
-    private int term;                      // Current term
-    private NodeType type;                 // Current type of node
+    private int term;                       // Current term
+    private NodeType type;                  // Current type of node
 
-    private ArrayList<PeerNode> peerNodes; // List of peers in the protocol, must be thread-safe
-    private PeerNode myLeader;             // Current leader node
-    private InetAddress myAddress;         // Local node's address
+    private ArrayList<PeerNode> peerNodes;  // List of peers in the protocol, must be thread-safe
+    private PeerNode myLeader;              // Current leader node
+    private InetAddress myAddress;          // Local node's address
 
-    private boolean hasVoted;              // Voted status in current term
-    private int voteCount;                 // Vote tally in current term
-    private int totalVotes;                // Number of vote responses received in current term
+    private boolean hasVoted;               // Voted status in current term
+    private int voteCount;                  // Vote tally in current term
+    private int totalVotes;                 // Number of vote responses received in current term
 
-    private Date lastLeaderUpdate;         // Timestamp of last message from leader or candidate
-    private int electionTimeout;           // Current term's election timeout in milliseconds
+    private Date lastLeaderUpdate;          // Timestamp of last message from leader or candidate
+    private int electionTimeout;            // Current term's election timeout in milliseconds
 
-    private boolean[] hasPrinted;          // Whether we have printed countdown yet
+    private boolean[] hasPrinted;           // Whether we have printed countdown yet
 
+    private HashMap<String, Integer> cache; // In-memory key-value store
 
     /**
      * Constructor for the local node, sets its initial values.
@@ -87,6 +101,8 @@ public class RaftNode {
         } catch (UnknownHostException e) { e.printStackTrace(); }
 
         this.hasPrinted = new boolean[ELECTION_COUNTDOWN_START];
+
+        this.cache = new HashMap<>();
     }
 
     /**
@@ -313,6 +329,32 @@ public class RaftNode {
         } catch (IOException | InterruptedException ignored) { }
 
         return true;
+    }
+
+    int retrieveFromCache(String key) {
+        // Try to find key in cache
+
+        // Try to find key in file
+        return cache.get(key);
+    }
+
+    void deleteFromCache(String key) {
+        // Try to find key in cache
+
+        // Try to find key in file
+        cache.remove(key);
+    }
+
+    void addToCache(String key, int value) {
+        cache.put(key, value);
+    }
+
+    void commitCacheToFile() {
+        try (PrintWriter out = new PrintWriter(CACHE_FILENAME)) {
+            for (String key : cache.keySet()) {
+                out.println(key + " " + cache.get(key));
+            }
+        } catch (FileNotFoundException e) { e.printStackTrace(); }
     }
 
     /**
