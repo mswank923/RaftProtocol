@@ -28,5 +28,10 @@ public enum MessageType {
     /**
      * Message is a request to know who the current leader is.
      */
-    FIND_LEADER
+    FIND_LEADER,
+
+    /**
+     * Message is a request to commit cache to file
+     */
+    COMMIT
 }

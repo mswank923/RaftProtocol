@@ -25,7 +25,30 @@ public class MessageHandlerThread extends Thread {
         LogOp operation = entry.getOp();
         switch(operation){
             case RETRIEVE:
+                String key = entry.getKey();
+                int value = node.retrieveFromCache(key);      // Get value from cache
 
+                // Send the value
+                Message retrieveResponse = new Message(APPEND_ENTRIES_RESPONSE, value);
+                node.sendMessage(node.getClientAddress(), retrieveResponse);
+                break;
+            case UPDATE:                                      // Update key value pair
+                node.addToCache(entry.getKey(), entry.getValue());
+                if(node.getType().equals(NodeType.LEADER))
+                    node.enqueue(entry);
+                else{
+                    Message updateResponse = new Message(APPEND_ENTRIES_RESPONSE, null);
+                    node.sendMessage(node.getMyLeader().getAddress(), updateResponse);
+                }
+                break;
+            case DELETE:                                      // Remove a key value pair
+                node.deleteFromCache(entry.getKey());
+                if(node.getType().equals(NodeType.LEADER))
+                    node.enqueue(entry);
+                else{
+                    Message deleteResponse = new Message(APPEND_ENTRIES_RESPONSE, null);
+                    node.sendMessage(node.getMyLeader().getAddress(), deleteResponse);
+                }
                 break;
         }
     }
@@ -133,23 +156,18 @@ public class MessageHandlerThread extends Thread {
                 }
                 else if (data instanceof LogEntry) {
                     LogEntry entry = (LogEntry) data;
-                    if(node.getType().equals(NodeType.LEADER))      //Only leader adds to queue
-                        if(entry.getOp().equals(LogOp.RETRIEVE)){
-                            String key = entry.getKey();
-
-                        }
-                        else{
-                            node.enqueue(entry);                    //Only add non-retrieve ops to queue
-                        }
-                    else{
-
-                    }
+                    rudOperations(entry);
                 }
                 else {
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES!");
                 }
 
             case APPEND_ENTRIES_RESPONSE:
+
+                break;
+            case COMMIT:
+                node.log("Committing cache to file");
+                node.commitCacheToFile();
                 break;
         }
     }

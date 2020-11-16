@@ -1,8 +1,7 @@
 package Node;
 
 import static java.lang.Thread.sleep;
-import static misc.MessageType.APPEND_ENTRIES_RESPONSE;
-import static misc.MessageType.FIND_LEADER;
+import static misc.MessageType.*;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -80,6 +79,7 @@ public class RaftNode {
 
     private HashMap<String, Integer> cache;                 // In-memory key-value store
     private ConcurrentLinkedQueue<LogEntry> entries;        // Entries to send on heartbeat
+    private int responseCount;                              // Number of responses received before committing entry
 
     /**
      * Constructor for the local node, sets its initial values.
@@ -92,6 +92,7 @@ public class RaftNode {
         this.term = 0;
         this.voteCount = 0;
         this.totalVotes = 0;
+        this.responseCount = 0;
 
         this.hasVoted = false;
         this.myLeader = null;
@@ -146,6 +147,10 @@ public class RaftNode {
     void incrementVoteCount() { this.voteCount++; }
 
     void incrementTotalVotes() { this.totalVotes++; }
+
+    void incrementResponseCount() {
+        this.responseCount++;
+    }
 
     /**
      * Move on to the next term number. Occurs when node promotes to CANDIDATE, or when hearing from
@@ -226,7 +231,7 @@ public class RaftNode {
      */
     synchronized void sendHeartbeat() {
         log("Sending heartbeat.");
-        Message message = new Message(MessageType.APPEND_ENTRIES, null);
+        Message message = new Message(MessageType.APPEND_ENTRIES, entries.poll());
 
         for (PeerNode peer : peerNodes)
             if (!sendMessage(peer.getAddress(), message) && peer.isAlive())
@@ -260,6 +265,21 @@ public class RaftNode {
                 log("Beginning election in " + remainingSecs + " seconds.");
         }
         return now - lastLeaderUpdate.getTime() > electionTimeout;
+    }
+
+    synchronized void checkResponseMajority(){
+
+        int nodeCount = getNodeCount();
+        int majority = (nodeCount / 2) + 1;
+
+        if(responseCount >= majority) {
+            log("Commit cache");
+            commitCacheToFile();
+            Message commit = new Message(COMMIT, null);
+            for(PeerNode peer : peerNodes){                 //Send commit message to followers
+                sendMessage(peer.getAddress(), commit);
+            }
+        }
     }
 
     void checkElectionResult() {
