@@ -11,7 +11,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
-import java.util.HashMap;
+import java.util.*;
+
 import misc.*;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -21,9 +22,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 import misc.*;
 
 /**
@@ -61,23 +61,25 @@ public class RaftNode {
      * Attributes
      */
 
-    private int term;                       // Current term
-    private NodeType type;                  // Current type of node
+    private int term;                                       // Current term
+    private NodeType type;                                  // Current type of node
 
-    private ArrayList<PeerNode> peerNodes;  // List of peers in the protocol, must be thread-safe
-    private PeerNode myLeader;              // Current leader node
-    private InetAddress myAddress;          // Local node's address
+    private ArrayList<PeerNode> peerNodes;                  // List of peers in the protocol, must be thread-safe
+    private PeerNode myLeader;                              // Current leader node
+    private InetAddress myAddress;                          // Local node's address
+    private InetAddress clientAddress;                      // Client's address
 
-    private boolean hasVoted;               // Voted status in current term
-    private int voteCount;                  // Vote tally in current term
-    private int totalVotes;                 // Number of vote responses received in current term
+    private boolean hasVoted;                               // Voted status in current term
+    private int voteCount;                                  // Vote tally in current term
+    private int totalVotes;                                 // Number of vote responses received in current term
 
-    private Date lastLeaderUpdate;          // Timestamp of last message from leader or candidate
-    private int electionTimeout;            // Current term's election timeout in milliseconds
+    private Date lastLeaderUpdate;                          // Timestamp of last message from leader or candidate
+    private int electionTimeout;                            // Current term's election timeout in milliseconds
 
-    private boolean[] hasPrinted;           // Whether we have printed countdown yet
+    private boolean[] hasPrinted;                           // Whether we have printed countdown yet
 
-    private HashMap<String, Integer> cache; // In-memory key-value store
+    private HashMap<String, Integer> cache;                 // In-memory key-value store
+    private ConcurrentLinkedQueue<LogEntry> entries;        // Entries to send on heartbeat
 
     /**
      * Constructor for the local node, sets its initial values.
@@ -93,6 +95,7 @@ public class RaftNode {
 
         this.hasVoted = false;
         this.myLeader = null;
+        this.clientAddress = null;
 
         this.peerNodes = new ArrayList<>();
 
@@ -103,6 +106,7 @@ public class RaftNode {
         this.hasPrinted = new boolean[ELECTION_COUNTDOWN_START];
 
         this.cache = new HashMap<>();
+        this.entries = new ConcurrentLinkedQueue<>();
     }
 
     /**
@@ -117,6 +121,8 @@ public class RaftNode {
 
     void setMyLeader(PeerNode leader) { this.myLeader = leader; }
 
+    void setClientAddress(InetAddress address) { this.clientAddress = address; }
+
     /**
      * Adds a newly created Node.PeerNode to our list of Peers. Assumes that the peer does not yet exist.
      * @param peer The new peer to add.
@@ -126,6 +132,10 @@ public class RaftNode {
         peerNodes.add(peer);
         log("Discovered peer " + name + ".");
         resetTimeout();
+    }
+
+    void enqueue(LogEntry entry){
+        this.entries.add(entry);
     }
 
     /**
@@ -160,6 +170,10 @@ public class RaftNode {
      * @return The local node's address.
      */
     InetAddress getMyAddress() { return this.myAddress; }
+
+    InetAddress getClientAddress() {
+        return this.clientAddress;
+    }
 
     /**
      * Gets the total number of known nodes, including the local node itself.

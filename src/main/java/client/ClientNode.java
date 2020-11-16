@@ -37,17 +37,12 @@ public class ClientNode {
 
     /**
      * Get the InetAddress of the Leader for this term
-     * @return Address of leader
      */
     public void findLeader() throws UnknownHostException {
-        // Send FIND_LEADER message to random peer
-        Message message = new Message(MessageType.FIND_LEADER, null);
-        String peer = peers.get(0);
-        leaderAddress = InetAddress.getByName(peer);
-        if (!sendMessage(message)) {
-            peers.remove(0);
-            findLeader();
-        }
+        try {
+            String peer = peers.get(0);
+            leaderAddress = InetAddress.getByName(peer);
+        }catch(IndexOutOfBoundsException ignored){ }
     }
 
     /**

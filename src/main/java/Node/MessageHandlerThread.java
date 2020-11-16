@@ -4,6 +4,9 @@ import static misc.MessageType.FIND_LEADER;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+
+import misc.LogEntry;
+import misc.LogOp;
 import misc.Message;
 import misc.MessageType;
 
@@ -16,6 +19,15 @@ public class MessageHandlerThread extends Thread {
         this.node = node;
         this.message = message;
         this.senderAddress = senderAddress;
+    }
+
+    private void rudOperations(LogEntry entry){
+        LogOp operation = entry.getOp();
+        switch(operation){
+            case RETRIEVE:
+
+                break;
+        }
     }
 
     /**
@@ -31,14 +43,14 @@ public class MessageHandlerThread extends Thread {
         // Check to see if we receive a message from a client.
         if (type.equals(FIND_LEADER)) {
             try {
-                InetAddress clientAddress = InetAddress.getByName(sourceAddress);
+                node.setClientAddress(InetAddress.getByName(sourceAddress));
                 Message msg;
                 if (node.getType().equals(NodeType.LEADER)) // ff I am the leader send my address
                     msg = new Message(FIND_LEADER, node.getMyAddress());
                 else // else send my leader's address
                     msg = new Message(FIND_LEADER, node.getMyLeader().getAddress());
 
-                node.sendMessage(clientAddress, msg);
+                node.sendMessage(InetAddress.getByName(sourceAddress), msg);
             } catch (UnknownHostException e) { e.printStackTrace(); }
             return;
         }
@@ -119,7 +131,20 @@ public class MessageHandlerThread extends Thread {
                     node.sendMessage(sourcePeer.getAddress(), nullResponse);
                     break;
                 }
-                // else if (data instanceof Entry) {
+                else if (data instanceof LogEntry) {
+                    LogEntry entry = (LogEntry) data;
+                    if(node.getType().equals(NodeType.LEADER))      //Only leader adds to queue
+                        if(entry.getOp().equals(LogOp.RETRIEVE)){
+                            String key = entry.getKey();
+
+                        }
+                        else{
+                            node.enqueue(entry);                    //Only add non-retrieve ops to queue
+                        }
+                    else{
+
+                    }
+                }
                 else {
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES!");
                 }

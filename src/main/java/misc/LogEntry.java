@@ -9,7 +9,7 @@ public class LogEntry {
     /**
      * The type of log operation we are doing (Retrieve, update, delete)
      */
-    private LogOp action;
+    private LogOp op;
 
     /**
      * The key to the key-value pair we are looking at
@@ -21,13 +21,23 @@ public class LogEntry {
      */
     private int value;
 
-    public LogEntry(LogOp action, String key, int value){
-        this.action = action;
+    public LogEntry(LogOp op, String key, int value){
+        this.op = op;
         this.key = key;
         this.value = value;
     }
 
-    public void commit() {
+    /*  Getters   */
 
+    public LogOp getOp() {
+        return op;
+    }
+
+    public String getKey() {
+        return this.key;
+    }
+
+    public int getValue() {
+        return this.value;
     }
 }
