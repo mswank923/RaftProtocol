@@ -4,12 +4,12 @@
 version: '3.7'
 
 services:
-  node1:
+  client:
     build:
       context: .
       dockerfile: Dockerfile-raftprotocol
     image: raft-node:latest
-    container_name: node1
+    container_name: client
     environment:
       - TERM=xterm
     working_dir: /csci251

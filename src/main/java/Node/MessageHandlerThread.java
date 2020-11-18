@@ -170,6 +170,9 @@ public class MessageHandlerThread extends Thread {
                 }
 
             case APPEND_ENTRIES_RESPONSE: // Only received by LEADER
+                if (data == null)
+                    break;
+
                 // Type check
                 if (!(data instanceof String))
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES_RESPONSE!");

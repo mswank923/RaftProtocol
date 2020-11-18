@@ -29,6 +29,7 @@ public class ClientNode {
     }
 
     public void addPeer(String address) {
+        System.out.println("Found new peer.");
         this.peers.add(address);
     }
 
@@ -129,6 +130,9 @@ public class ClientNode {
         PassiveClientBroadcastThread broadcastThread = new PassiveClientBroadcastThread(thisNode);
         broadcastThread.start();
 
+        PassiveClientMessageThread messageThread = new PassiveClientMessageThread(thisNode);
+        messageThread.start();
+
         // Find the leader
         try {
             thisNode.findLeader();
@@ -151,7 +155,7 @@ public class ClientNode {
 
             LogEntry entry;
 
-            //Look through all of the cases of the command input
+            // Look through all of the cases of the command input
             switch (command) {
                 case "get":                 //Create a retrieve entry
                     if (assertTrue(split.length == 2))

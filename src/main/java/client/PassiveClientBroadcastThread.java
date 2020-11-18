@@ -11,7 +11,7 @@ import Node.*;
 /**
  * Thread that receives broadcasted addresses used for client to recognize/find the leader
  */
-public class PassiveClientBroadcastThread extends Thread{
+public class PassiveClientBroadcastThread extends Thread {
 
     /**
      * Size in bytes of the buffer to read incoming transmissions into.
