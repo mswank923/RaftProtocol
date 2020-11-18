@@ -81,12 +81,19 @@ public class ClientNode {
     public void processMessage(Message message){
         MessageType msgType = message.getType();
         Object data = message.getData();
-        switch (msgType) {
-            case FIND_LEADER:
+        switch(msgType){
+            case FIND_LEADER:                       //Process what to do when receiving leader address
                 if (!(data instanceof InetAddress))
                     throw new RuntimeException("Wrong data type for FIND_LEADER");
 
                 this.leaderAddress = (InetAddress) data;
+                break;
+            case APPEND_ENTRIES_RESPONSE:           //Process what to do when receiving entries response
+                if (!(data instanceof String))
+                    throw new RuntimeException("Wrong data type for APPEND_ENTRIES_RESPONSE");
+
+                String response = (String) data;
+                System.out.println(response);
                 break;
         }
 
@@ -143,13 +150,15 @@ public class ClientNode {
             String key = split[1];
 
             LogEntry entry;
+
+            //Look through all of the cases of the command input
             switch (command) {
-                case "get":
+                case "get":                 //Create a retrieve entry
                     if (assertTrue(split.length == 2))
                         continue;
                     entry = new LogEntry(LogOp.RETRIEVE, key, -1);
                     break;
-                case "set":
+                case "set":                 //Create an update entry
                     if (assertTrue(split.length == 3))
                         continue;
 
@@ -163,12 +172,12 @@ public class ClientNode {
 
                     entry = new LogEntry(LogOp.UPDATE, key, value);
                     break;
-                case "del":
+                case "del":                 //Create a delete entry
                     if (assertTrue(split.length == 2))
                         continue;
                     entry = new LogEntry(LogOp.DELETE, key, -1);
                     break;
-                default:
+                default:                    //Incorrect command given, print help message
                     printHelp();
                     continue;
             }
