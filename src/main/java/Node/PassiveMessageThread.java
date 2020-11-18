@@ -32,12 +32,16 @@ public class PassiveMessageThread extends Thread {
                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())
             ) {
                 // 2. Read message from input
+                if (node.getType().equals(NodeType.LEADER)) {
+                    System.out.println("CONNECTION!!!!!!!!!!!!!!!!!");
+                }
                 message = (Message) in.readUnshared();
                 senderAddress = socket.getInetAddress().getHostAddress();
 
                 // 3. Close socket
-            } catch (IOException | ClassNotFoundException ignored) { }
-
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
             // 4. Process message
             new MessageHandlerThread(node, message, senderAddress).start();
         }

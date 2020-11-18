@@ -120,7 +120,10 @@ public class RaftNode {
 
     void setTerm(int term) { this.term = term; }
 
-    void setMyLeader(PeerNode leader) { this.myLeader = leader; }
+    void setMyLeader(PeerNode leader) {
+        this.myLeader = leader;
+        System.out.println("Leader address: " + leader.getAddress().getHostAddress());
+    }
 
     void setClientAddress(InetAddress address) { this.clientAddress = address; }
 
@@ -364,7 +367,7 @@ public class RaftNode {
             out.writeUnshared(message);
 
             // 3. Wait until socket is closed (peer closes when it's done receiving the data)
-            while (in.read() != -1) { sleep(50); }
+            while (in.read() != -1) { sleep(10); }
         } catch (SocketTimeoutException e) { // Peer is dead (most likely the leader we stopped)
             return false;
         } catch (IOException | InterruptedException ignored) { }

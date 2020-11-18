@@ -1,10 +1,12 @@
 package misc;
 
+import java.io.Serializable;
+
 /**
  * This class is used as an entry for a message
  * and defines what to do with that entry
  */
-public class LogEntry {
+public class LogEntry implements Serializable {
 
     /**
      * The type of log operation we are doing (Retrieve, update, delete)
