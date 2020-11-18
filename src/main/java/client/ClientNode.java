@@ -81,7 +81,7 @@ public class ClientNode {
     public void processMessage(Message message){
         MessageType msgType = message.getType();
         Object data = message.getData();
-        switch(msgType){
+        switch (msgType) {
             case FIND_LEADER:
                 if (!(data instanceof InetAddress))
                     throw new RuntimeException("Wrong data type for FIND_LEADER");

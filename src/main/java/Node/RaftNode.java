@@ -231,7 +231,10 @@ public class RaftNode {
      */
     synchronized void sendHeartbeat() {
         log("Sending heartbeat.");
-        Message message = new Message(MessageType.APPEND_ENTRIES, entries.poll());
+        LogEntry entry = entries.poll();
+        if (entry != null)
+            responseCount = 0;
+        Message message = new Message(MessageType.APPEND_ENTRIES, entry);
 
         for (PeerNode peer : peerNodes)
             if (!sendMessage(peer.getAddress(), message) && peer.isAlive())
@@ -267,18 +270,22 @@ public class RaftNode {
         return now - lastLeaderUpdate.getTime() > electionTimeout;
     }
 
-    synchronized void checkResponseMajority(){
+    synchronized void checkResponseMajority(String lastResponseMessage) {
 
         int nodeCount = getNodeCount();
         int majority = (nodeCount / 2) + 1;
 
-        if(responseCount >= majority) {
+        if (responseCount >= majority) {
             log("Commit cache");
             commitCacheToFile();
             Message commit = new Message(COMMIT, null);
-            for(PeerNode peer : peerNodes){                 //Send commit message to followers
+            for (PeerNode peer : peerNodes) {                 // Send commit message to followers
                 sendMessage(peer.getAddress(), commit);
             }
+
+            // Notify client that entry is complete
+            Message clientResponse = new Message(APPEND_ENTRIES_RESPONSE, lastResponseMessage);
+            sendMessage(clientAddress, clientResponse);
         }
     }
 
@@ -365,30 +372,41 @@ public class RaftNode {
         return true;
     }
 
-    int retrieveFromCache(String key) {
-        // Try to find key in cache
+    int retrieveFromCache(String key) { return cache.get(key); }
 
-        // Try to find key in file
-        return cache.get(key);
-    }
+    void deleteFromCache(String key) { cache.remove(key); }
 
-    void deleteFromCache(String key) {
-        // Try to find key in cache
-
-        // Try to find key in file
-        cache.remove(key);
-    }
-
-    void addToCache(String key, int value) {
-        cache.put(key, value);
-    }
+    void addToCache(String key, int value) { cache.put(key, value); }
 
     void commitCacheToFile() {
+        File cacheFile = new File(CACHE_FILENAME);
+        cacheFile.delete();
+
         try (PrintWriter out = new PrintWriter(CACHE_FILENAME)) {
-            for (String key : cache.keySet()) {
+            for (String key : cache.keySet())
                 out.println(key + " " + cache.get(key));
-            }
         } catch (FileNotFoundException e) { e.printStackTrace(); }
+    }
+
+    /**
+     * If cache file exists, load the cache from the file.
+     */
+    private void loadCacheFromFile() {
+        File cacheFile = new File(CACHE_FILENAME);
+        if (cacheFile.exists()) {
+            try {
+                Scanner fileScanner = new Scanner(cacheFile);
+                while (fileScanner.hasNextLine()) {
+                    String line = fileScanner.nextLine();
+                    String[] split = line.split(" ");
+
+                    String key = split[0];
+                    int value = Integer.parseInt(split[1]);
+
+                    cache.put(key, value);
+                }
+            } catch (FileNotFoundException e) { e.printStackTrace(); }
+        }
     }
 
     /**
@@ -406,6 +424,9 @@ public class RaftNode {
     public static void main(String[] args) {
         // Start up the local node
         RaftNode thisNode = new RaftNode();
+
+        // Check for existence of a cache file
+        thisNode.loadCacheFromFile();
 
         // Receive broadcasts
         PassiveBroadcastThread passiveBroadcastThread = new PassiveBroadcastThread(thisNode);

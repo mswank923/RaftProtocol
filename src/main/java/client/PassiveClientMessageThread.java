@@ -34,7 +34,7 @@ public class PassiveClientMessageThread extends Thread{
                 // 3. Close socket
             } catch (IOException | ClassNotFoundException ignored) { }
 
-            if(message != null)
+            if (message != null)
                 node.processMessage(message);
         }
     }
