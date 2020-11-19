@@ -72,9 +72,6 @@ public class MessageHandlerThread extends Thread {
         MessageType type = message.getType();
         Object data = message.getData();
 
-        if (node.getType().equals(NodeType.LEADER))
-            node.log("GOT A MESSAGE!!!!!!!!!!!!!");
-
         if (type.equals(FIND_LEADER)) {
             System.out.println("Asked for leader. Responding...");
             try {
@@ -149,6 +146,7 @@ public class MessageHandlerThread extends Thread {
                 break;
 
             case APPEND_ENTRIES:
+                node.resetTimeout();
                 if (data == null) { // null indicates this was just a heartbeat
                     sourcePeer = node.getPeer(sourceAddress);
                     if (sourcePeer != null && !sourcePeer.isAlive())
@@ -167,10 +165,14 @@ public class MessageHandlerThread extends Thread {
                     if (!node.getType().equals(NodeType.FOLLOWER))
                         node.setType(NodeType.FOLLOWER);
 
-                    node.resetTimeout();
                     Message nullResponse = new Message(APPEND_ENTRIES_RESPONSE, null);
                     //node.sendMessage(sourcePeer.getAddress(), nullResponse);
                 } else if (data instanceof LogEntry) {
+                    if (node.getType().equals(NodeType.LEADER))
+                        try {
+                            node.setClientAddress(InetAddress.getByName(sourceAddress));
+                        } catch (UnknownHostException e) { e.printStackTrace(); }
+
                     LogEntry entry = (LogEntry) data;
                     node.log("Received LogEntry of type " + entry.getOp().toString());
                     rudOperations(entry);
@@ -190,6 +192,7 @@ public class MessageHandlerThread extends Thread {
                 node.incrementResponseCount();
 
                 String msg = (String) data;
+                node.log("Received response. Checking majority.");
                 node.checkResponseMajority(msg);
                 break;
 

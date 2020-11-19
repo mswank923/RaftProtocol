@@ -32,9 +32,6 @@ public class PassiveMessageThread extends Thread {
                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())
             ) {
                 // 2. Read message from input
-                if (node.getType().equals(NodeType.LEADER)) {
-                    System.out.println("CONNECTION!!!!!!!!!!!!!!!!!");
-                }
                 message = (Message) in.readUnshared();
                 senderAddress = socket.getInetAddress().getHostAddress();
 

@@ -122,7 +122,6 @@ public class RaftNode {
 
     void setMyLeader(PeerNode leader) {
         this.myLeader = leader;
-        System.out.println("Leader address: " + leader.getAddress().getHostAddress());
     }
 
     void setClientAddress(InetAddress address) { this.clientAddress = address; }
@@ -273,10 +272,10 @@ public class RaftNode {
         return now - lastLeaderUpdate.getTime() > electionTimeout;
     }
 
-    synchronized void checkResponseMajority(String lastResponseMessage) {
+    void checkResponseMajority(String lastResponseMessage) {
 
-        int nodeCount = getNodeCount();
-        int majority = (nodeCount / 2) + 1;
+        int peerCount = getNodeCount() - 1;
+        int majority = (peerCount / 2) + 1;
 
         if (responseCount >= majority) {
             log("Commit cache");
@@ -289,10 +288,12 @@ public class RaftNode {
             // Notify client that entry is complete
             Message clientResponse = new Message(APPEND_ENTRIES_RESPONSE, lastResponseMessage);
             sendMessage(clientAddress, clientResponse);
+
+            responseCount = 0;
         }
     }
 
-    void checkElectionResult() {
+    synchronized void checkElectionResult() {
         if (type.equals(NodeType.LEADER))
             return;
 

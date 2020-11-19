@@ -74,12 +74,11 @@ public class ClientNode {
 
             // 2. Write message to output
             out.writeUnshared(message);
-            System.out.println("Sent!");
+
             // 3. Wait until socket is closed (peer closes when it's done receiving the data)
             while (in.read() != -1) {
                 sleep(10);
             }
-            System.out.println("Waiting for socket close...");
         } catch (SocketTimeoutException e) { // Peer is dead (most likely the leader we stopped)
             return false;
         } catch (IOException | InterruptedException ignored) { }
@@ -119,7 +118,7 @@ public class ClientNode {
                 "get <key>: request a value of a certain key\n" +
                 "set <key> <value>: request to update/add a value for a key\n" +
                 "del <key>: request to remove a key-value pair\n" +
-                "q: to quit the program\n";
+                "q: to quit the program";
         System.out.println(help);
     }
 
