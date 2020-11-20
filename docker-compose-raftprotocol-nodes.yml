@@ -24,7 +24,7 @@ services:
       - -c
       - |
         echo "Node 1 started!"
-        ./node-start.sh
+        ./docker_scripts/node-start.sh
         tail -f /dev/null
 
   node2:
@@ -46,7 +46,7 @@ services:
       - -c
       - |
         echo "Node 2 started!"
-        ./node-start.sh
+        ./docker_scripts/node-start.sh
         tail -f /dev/null
 
   node3:
@@ -68,7 +68,7 @@ services:
       - -c
       - |
         echo "Node 3 started!"
-        ./node-start.sh
+        ./docker_scripts/node-start.sh
         tail -f /dev/null
 
   node4:
@@ -90,7 +90,7 @@ services:
       - -c
       - |
         echo "Node 4 started!"
-        ./node-start.sh
+        ./docker_scripts/node-start.sh
         tail -f /dev/null
 
   node5:
@@ -112,7 +112,7 @@ services:
       - -c
       - |
         echo "Node 5 started!"
-        ./node-start.sh
+        ./docker_scripts/node-start.sh
         tail -f /dev/null
 
 

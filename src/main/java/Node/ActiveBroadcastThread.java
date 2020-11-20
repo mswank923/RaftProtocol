@@ -11,15 +11,20 @@ import java.net.InetAddress;
 public class ActiveBroadcastThread extends Thread {
 
     /**
+     * Reference to the local node.
+     */
+    private RaftNode node;
+
+    /**
      * Period between broadcasts in seconds.
      */
     private static final int PERIOD = 1;
 
-    private RaftNode node;
-
-    public ActiveBroadcastThread(RaftNode node) {
-        this.node = node;
-    }
+    /**
+     * Constructor. Initializes values.
+     * @param node Reference to the local node.
+     */
+    ActiveBroadcastThread(RaftNode node) { this.node = node; }
 
     /**
      * Broadcast a message.
@@ -35,6 +40,9 @@ public class ActiveBroadcastThread extends Thread {
         } catch (IOException e) { e.printStackTrace(); }
     }
 
+    /**
+     * Method defining the life of the thread. Continuously broadcasts our IP address once per sec.
+     */
     @Override
     public void run() {
         try (DatagramSocket socket = new DatagramSocket()) {

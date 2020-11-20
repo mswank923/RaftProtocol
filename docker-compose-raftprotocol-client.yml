@@ -24,8 +24,7 @@ services:
       - -c
       - |
         echo "Client Started!"
-        ./client-start.sh
-        tail -f /dev/null
+        ./docker_scripts/client-start.sh
 
 networks:
   raft_protocol_network:

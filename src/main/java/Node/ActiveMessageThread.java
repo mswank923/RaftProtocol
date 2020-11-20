@@ -5,12 +5,21 @@ package Node;
  */
 public class ActiveMessageThread extends Thread {
 
+    /**
+     * Reference to the local node.
+     */
     private RaftNode node;
 
-    public ActiveMessageThread(RaftNode node) {
-        this.node = node;
-    }
+    /**
+     * Constructor. Initializes values.
+     * @param node Reference to the local node.
+     */
+    public ActiveMessageThread(RaftNode node) { this.node = node; }
 
+    /**
+     * Method that defines the life of the thread. Continuously sends heartbeat every 2 seconds if
+     * we are the leader.
+     */
     @Override
     public void run() {
         while (true) {
