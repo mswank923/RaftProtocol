@@ -481,9 +481,10 @@ public class RaftNode {
             // 3. Wait until socket is closed (peer closes when it's done receiving the data)
             while (in.read() != -1) { sleep(10); }
         } catch (SocketTimeoutException e) { // Peer is dead (most likely the leader we stopped)
+            log("Sending message: FAILURE");
             return false;
         } catch (IOException | InterruptedException ignored) { }
-
+        log("Sending message: success");
         return true;
     }
 
