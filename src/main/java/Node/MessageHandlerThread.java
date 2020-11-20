@@ -1,5 +1,4 @@
 package Node;
-import static misc.MessageType.APPEND_ENTRIES;
 import static misc.MessageType.APPEND_ENTRIES_RESPONSE;
 import static misc.MessageType.FIND_LEADER;
 
@@ -46,7 +45,7 @@ public class MessageHandlerThread extends Thread {
                 message = "Value of " + key + " updated to " + value;
 
                 if (node.getType().equals(NodeType.LEADER)) {
-                    node.enqueue(entry);
+                    node.enqueueLogEntry(entry);
                 } else {
                     Message updateResponse = new Message(APPEND_ENTRIES_RESPONSE, message);
                     node.sendMessage(node.getMyLeader().getAddress(), updateResponse);
@@ -61,7 +60,7 @@ public class MessageHandlerThread extends Thread {
                 }
 
                 if (node.getType().equals(NodeType.LEADER)) {
-                    node.enqueue(entry);
+                    node.enqueueLogEntry(entry);
                 } else {
                     Message deleteResponse = new Message(APPEND_ENTRIES_RESPONSE, message);
                     node.sendMessage(node.getMyLeader().getAddress(), deleteResponse);
@@ -132,15 +131,15 @@ public class MessageHandlerThread extends Thread {
                 break;
 
             case VOTE_RESPONSE:
+                if (node.getType().equals(NodeType.LEADER))
+                    break;
+
                 // Type check
                 if (!(data instanceof Boolean))
                     throw new RuntimeException("Wrong data type for VOTE_RESPONSE!");
 
-                node.log("Received vote.");
-
                 // Did we get the vote?
-                if ((boolean) data)
-                    node.incrementVoteCount();
+                node.countVote((boolean) data);
 
                 // Update voted status for the peer
                 sourcePeer = node.getPeer(sourceAddress);
@@ -148,7 +147,6 @@ public class MessageHandlerThread extends Thread {
                     sourcePeer.alive();
 
                 sourcePeer.voted();
-                node.incrementTotalVotes();
 
                 node.checkElectionResult();
                 break;
@@ -197,10 +195,9 @@ public class MessageHandlerThread extends Thread {
                 if (!(data instanceof String))
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES_RESPONSE!");
 
-                node.incrementResponseCount();
-
                 String msg = (String) data;
                 node.log("Received response. Checking majority.");
+                node.incrementResponseCount();
                 node.checkResponseMajority(msg);
                 break;
 

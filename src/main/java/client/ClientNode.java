@@ -65,13 +65,9 @@ public class ClientNode {
      */
     public boolean sendMessage(Message message){
         try (Socket socket = new Socket()) {
-            int port;
-            if (message.getType().equals(APPEND_ENTRIES))
-                port = RaftNode.HEARTBEAT_PORT;
-            else
-                port = RaftNode.MESSAGE_PORT;
+            int port = message.getType().equals(APPEND_ENTRIES) ?
+                RaftNode.HEARTBEAT_PORT : RaftNode.MESSAGE_PORT;
 
-            System.out.println("Sending message to leader: " + leaderAddress.getHostAddress());
             // 1. Socket opens
             InetSocketAddress destination = new InetSocketAddress(leaderAddress, port);
             socket.connect(destination, 300);
@@ -83,9 +79,8 @@ public class ClientNode {
             out.writeUnshared(message);
 
             // 3. Wait until socket is closed (peer closes when it's done receiving the data)
-            while (in.read() != -1) {
-                sleep(10);
-            }
+            while (in.read() != -1) { sleep(10); }
+
         } catch (SocketTimeoutException e) { // Peer is dead (most likely the leader we stopped)
             return false;
         } catch (IOException | InterruptedException ignored) { }
@@ -105,7 +100,7 @@ public class ClientNode {
                 if (!(data instanceof InetAddress))
                     throw new RuntimeException("Wrong data type for FIND_LEADER");
                 leaderAddress = (InetAddress) data;
-                System.out.println("Found the leader: " + leaderAddress.getHostAddress());
+                System.out.println("Found the leader.");
                 break;
             case APPEND_ENTRIES_RESPONSE:           //Process what to do when receiving entries response
                 if (!(data instanceof String))
@@ -161,8 +156,10 @@ public class ClientNode {
         Scanner input = new Scanner(System.in);
         String line;
         while((line = input.nextLine()) != null) {
-            if (line.startsWith("q"))
-                break;
+            if (line.equals("q")) {
+                System.out.println("Shutting down.");
+                System.exit(0);
+            }
 
             // Process command
             String[] split = line.split("\\s");
@@ -207,8 +204,6 @@ public class ClientNode {
                     printHelp();
                     continue;
             }
-
-            System.out.println("Sending LogEntry of type " + entry.getOp().toString());
 
             Message message = new Message(MessageType.APPEND_ENTRIES, entry);
             boolean success = thisNode.sendMessage(message);
