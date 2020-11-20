@@ -12,39 +12,52 @@ import Node.*;
 import static java.lang.Thread.sleep;
 import static misc.MessageType.APPEND_ENTRIES;
 
+/**
+ * A class representing a client that attaches to the network of the nodes for inputting data.
+ */
 public class ClientNode {
 
-    /* Attributes */
+    /**
+     * A list of peer addresses that the client knows about through broadcast pickups.
+     */
     private ArrayList<String> peers;
+
+    /**
+     * The address of the current leader.
+     */
     private InetAddress leaderAddress;
 
-    /* Constructor */
-    public ClientNode() {
+    /**
+     * Constructor. Initializes values.
+     */
+    private ClientNode() {
         this.peers = new ArrayList<>();
         this.leaderAddress = null;
     }
 
-    /* Getters and Setters */
-    public ArrayList<String> getPeers() {
-        return this.peers;
-    }
+    /**
+     * Retrieve the list of peer addresses.
+     * @return The list of peer addresses.
+     */
+    ArrayList<String> getPeers() { return this.peers; }
 
-    public void addPeer(String address) {
+    /**
+     * Add a peer to the list of known peers.
+     * @param address The address of the peer.
+     */
+    void addPeer(String address) {
         System.out.println("Found new peer.");
         this.peers.add(address);
     }
 
 
-    /* Methods */
-
     /**
-     * Get the InetAddress of the Leader for this term
+     * Get the InetAddress of the LEADER for this term.
      */
-    public void findLeader() throws UnknownHostException {
+    void findLeader() {
         try {
-            while (peers.size() == 0) {
-                sleep(100);
-            }
+            while (peers.size() == 0) { sleep(100); }
+
             System.out.println("Finding leader...");
 
             if (leaderAddress == null)
@@ -53,17 +66,15 @@ public class ClientNode {
             // Send message to the address
             Message findLeader = new Message(MessageType.FIND_LEADER, null);
             sendMessage(findLeader);
-
-            // Set leader to response
-        } catch(IndexOutOfBoundsException | InterruptedException ignored) { }
+        } catch(IndexOutOfBoundsException | InterruptedException | UnknownHostException ignored) { }
     }
 
     /**
-     * Send a message to the leader
-     * @param message
-     * @return
+     * Send a message to the leader.
+     * @param message The message to send.
+     * @return Success status.
      */
-    public boolean sendMessage(Message message){
+    boolean sendMessage(Message message){
         try (Socket socket = new Socket()) {
             int port = message.getType().equals(APPEND_ENTRIES) ?
                 RaftNode.HEARTBEAT_PORT : RaftNode.MESSAGE_PORT;
@@ -89,20 +100,20 @@ public class ClientNode {
     }
 
     /**
-     * Process a message received from a peer
-     * @param message The message received
+     * Process a message received from a peer.
+     * @param message The message received.
      */
-    public void processMessage(Message message){
+    void processMessage(Message message){
         MessageType msgType = message.getType();
         Object data = message.getData();
         switch(msgType){
-            case FIND_LEADER:                       //Process what to do when receiving leader address
+            case FIND_LEADER: // Receiving leader address
                 if (!(data instanceof InetAddress))
                     throw new RuntimeException("Wrong data type for FIND_LEADER");
                 leaderAddress = (InetAddress) data;
                 System.out.println("Found the leader.");
                 break;
-            case APPEND_ENTRIES_RESPONSE:           //Process what to do when receiving entries response
+            case APPEND_ENTRIES_RESPONSE: // Receiving entries response
                 if (!(data instanceof String))
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES_RESPONSE");
 
@@ -113,7 +124,7 @@ public class ClientNode {
     }
 
     /**
-     * Print help message for cases where cli is not correct
+     * Print help message for cases where CLI is not of proper form.
      */
     private static void printHelp() {
         String help = "Commands:\n" +
@@ -127,8 +138,8 @@ public class ClientNode {
     /**
      * Assert that CLI is of proper form.
      * If it is not, then print help statement
-     * @param condition Condition to satisfy proper form
-     * @return true if condition is not met, false otherwise
+     * @param condition Condition to satisfy proper form.
+     * @return Whether to terminate processing of the command.
      */
     private static boolean assertTrue(boolean condition) {
         if (!condition)
@@ -136,26 +147,24 @@ public class ClientNode {
         return !condition;
     }
 
+    /**
+     * Main method. Drives the client program.
+     * @param args Command-line args, unused.
+     */
     public static void main(String[] args) {
         ClientNode thisNode = new ClientNode();
 
-        // Start receiving broadcasts
-        PassiveClientBroadcastThread broadcastThread = new PassiveClientBroadcastThread(thisNode);
-        broadcastThread.start();
-
-        PassiveClientMessageThread messageThread = new PassiveClientMessageThread(thisNode);
-        messageThread.start();
+        // Start receiving broadcasts & messages
+        new PassiveClientBroadcastThread(thisNode).start();
+        new PassiveClientMessageThread(thisNode).start();
 
         // Find the leader
-        try {
-            thisNode.findLeader();
-        } catch (UnknownHostException e) { e.printStackTrace(); }
-
+        thisNode.findLeader();
 
         // Start up CLI
         Scanner input = new Scanner(System.in);
         String line;
-        while((line = input.nextLine()) != null) {
+        while ((line = input.nextLine()) != null) {
             if (line.equals("q")) {
                 System.out.println("Shutting down.");
                 System.exit(0);
@@ -209,9 +218,7 @@ public class ClientNode {
             boolean success = thisNode.sendMessage(message);
             if (!success) { // if sending fails, find leader & try again
                 System.out.println("Connection to leader failed, finding leader again...");
-                try {
-                    thisNode.findLeader();
-                } catch (UnknownHostException e) { e.printStackTrace(); }
+                thisNode.findLeader();
                 thisNode.sendMessage(message);
             }
         }

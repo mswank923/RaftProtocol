@@ -9,17 +9,29 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+/**
+ * Thread that accepts incoming connections and messages and processes them.
+ */
 public class PassiveClientMessageThread extends Thread{
 
+    /**
+     * Reference to the client.
+     */
     private ClientNode node;
 
-    public PassiveClientMessageThread(ClientNode node){
-        this.node = node;
-    }
+    /**
+     * Constructor. Initializes values.
+     * @param node Reference to the local node.
+     */
+    PassiveClientMessageThread(ClientNode node){ this.node = node; }
 
+    /**
+     * Method that defines the life of the thread. Continuously accepts incoming connections and
+     * reads a message, then processes the message.
+     */
     @Override
     public void run(){
-        while(true) {
+        while (true) {
             Message message = null;
             // 1. Socket opens
             try (

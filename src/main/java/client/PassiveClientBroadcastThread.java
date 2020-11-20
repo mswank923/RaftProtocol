@@ -9,20 +9,25 @@ import java.util.ArrayList;
 import Node.*;
 
 /**
- * Thread that receives broadcasted addresses used for client to recognize/find the leader
+ * Thread that receives broadcast addresses.
  */
 public class PassiveClientBroadcastThread extends Thread {
+
+    /**
+     * Reference to the client.
+     */
+    private ClientNode node;
 
     /**
      * Size in bytes of the buffer to read incoming transmissions into.
      */
     private static final int BUFSIZE = 1024;
 
-    private ClientNode node;
-
-    public PassiveClientBroadcastThread(ClientNode clientNode){
-        this.node = clientNode;
-    }
+    /**
+     * Constructor. Initializes values.
+     * @param clientNode Reference to the client.
+     */
+    PassiveClientBroadcastThread(ClientNode clientNode){ this.node = clientNode; }
 
     /**
      * Receive a packet from a socket
@@ -40,8 +45,8 @@ public class PassiveClientBroadcastThread extends Thread {
     }
 
     /**
-     * Add broadcasted nodes to client's peer list
-     * @param message The address of a peer
+     * Add broadcast node address to client's peer list.
+     * @param message The address of a peer.
      */
     private void process(String message) {
         // message is the IP address that belongs to a peer node (or this node)
@@ -61,6 +66,9 @@ public class PassiveClientBroadcastThread extends Thread {
         node.addPeer(message);
     }
 
+    /**
+     * Method that defines the life of the thread. Continuously reads data that is broadcast.
+     */
     @Override
     public void run() {
         try (DatagramSocket socket = new DatagramSocket(RaftNode.BROADCAST_PORT)) {
