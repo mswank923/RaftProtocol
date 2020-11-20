@@ -46,14 +46,17 @@ public class PassiveMessageThread extends Thread {
             // 1. Socket opens
             try (
                 ServerSocket listener = new ServerSocket(port);
-                Socket socket = listener.accept();
-                ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
-                ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())
+                Socket socket = listener.accept()
             ) {
+                ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
+                ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+
                 // 2. Read message from input
                 message = (Message) in.readUnshared();
                 senderAddress = socket.getInetAddress().getHostAddress();
 
+                in.close();
+                out.close();
                 // 3. Close socket
             } catch (IOException | ClassNotFoundException e) { e.printStackTrace(); }
 

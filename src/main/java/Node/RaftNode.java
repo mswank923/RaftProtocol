@@ -466,6 +466,13 @@ public class RaftNode {
      */
     boolean sendMessage(InetAddress address, Message message) {
         int port = message.getType().equals(APPEND_ENTRIES) ? HEARTBEAT_PORT : MESSAGE_PORT;
+        if (message.getType().equals(APPEND_ENTRIES_RESPONSE) ||
+            message.getType().equals(VOTE_RESPONSE)) {
+            try {
+                Random random = new Random();
+                sleep(random.nextInt(501));
+            } catch (InterruptedException ignored) { }
+        }
 
         try (Socket socket = new Socket()) {
             // 1. Socket opens
@@ -478,13 +485,15 @@ public class RaftNode {
             // 2. Write message to output
             out.writeUnshared(message);
 
+            in.close();
+            out.close();
+
             // 3. Wait until socket is closed (peer closes when it's done receiving the data)
-            while (in.read() != -1) { sleep(10); }
+            while (in.read() != -1) { sleep(1); }
         } catch (SocketTimeoutException e) { // Peer is dead (most likely the leader we stopped)
-            log("Sending message: FAILURE");
             return false;
         } catch (IOException | InterruptedException ignored) { }
-        log("Sending message: success");
+
         return true;
     }
 

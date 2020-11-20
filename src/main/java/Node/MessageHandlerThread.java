@@ -184,9 +184,7 @@ public class MessageHandlerThread extends Thread {
                     if (!sourcePeer.isAlive())
                         sourcePeer.alive();
 
-                    if (sourcePeer.equals(node.getMyLeader())) {// From current leader
-                        node.log("Heard heartbeat.");
-                    } else { // From new leader (indicates new term)
+                    if (!sourcePeer.equals(node.getMyLeader())) { // From new leader
                         node.log("New leader!");
                         node.setMyLeader(sourcePeer);
                         node.setHasVoted(false);
@@ -196,6 +194,8 @@ public class MessageHandlerThread extends Thread {
 
                 // Process the data
                 if (data == null) { // A heartbeat from the leader
+                    node.log("Heard heartbeat.");
+
                     if (!node.getType().equals(NodeType.FOLLOWER))
                         node.setType(NodeType.FOLLOWER);
 
