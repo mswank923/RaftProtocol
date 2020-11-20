@@ -30,8 +30,12 @@ public class MessageHandlerThread extends Thread {
         String message;
         switch(operation){
             case RETRIEVE:
-                int retrievedValue = node.retrieveFromCache(key);      // Get value from cache
-                message = "Value of " + key + " is " + retrievedValue;
+                try {
+                    int retrievedValue = node.retrieveFromCache(key);      // Get value from cache
+                    message = "Value of " + key + " is " + retrievedValue;
+                } catch (NullPointerException e) {
+                    message = "No value for " + key;
+                }
 
                 // Send the value back to the client
                 Message retrieveResponse = new Message(APPEND_ENTRIES_RESPONSE, message);
@@ -48,9 +52,13 @@ public class MessageHandlerThread extends Thread {
                     node.sendMessage(node.getMyLeader().getAddress(), updateResponse);
                 }
                 break;
-            case DELETE:                                      // Remove a key value pair
-                node.deleteFromCache(key);
-                message = "Key " + key + " deleted";
+            case DELETE: // Remove a key value pair
+                try {
+                    node.deleteFromCache(key);
+                    message = "Key " + key + " deleted";
+                } catch (NullPointerException e) {
+                    message = "No value for " + key;
+                }
 
                 if (node.getType().equals(NodeType.LEADER)) {
                     node.enqueue(entry);

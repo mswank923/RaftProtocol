@@ -41,6 +41,11 @@ public class RaftNode {
     public static final int MESSAGE_PORT = 6789;
 
     /**
+     * Port on which APPEND_ENTRIES is sent.
+     */
+    public static final int HEARTBEAT_PORT = 6790;
+
+    /**
      * Election timeout range (in seconds)
      */
     static final int ELECTION_TIMEOUT_MIN = 4;
@@ -356,9 +361,14 @@ public class RaftNode {
      */
     boolean sendMessage(InetAddress address, Message message) {
         try (Socket socket = new Socket()) {
+            int port;
+            if (message.getType().equals(APPEND_ENTRIES))
+                port = HEARTBEAT_PORT;
+            else
+                port = MESSAGE_PORT;
 
             // 1. Socket opens
-            InetSocketAddress destination = new InetSocketAddress(address, MESSAGE_PORT);
+            InetSocketAddress destination = new InetSocketAddress(address, port);
             socket.connect(destination, 300);
 
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -376,9 +386,13 @@ public class RaftNode {
         return true;
     }
 
-    int retrieveFromCache(String key) { return cache.get(key); }
+    int retrieveFromCache(String key) throws NullPointerException {
+        return cache.get(key);
+    }
 
-    void deleteFromCache(String key) { cache.remove(key); }
+    int deleteFromCache(String key) throws NullPointerException {
+        return cache.remove(key);
+    }
 
     void addToCache(String key, int value) { cache.put(key, value); }
 
@@ -446,8 +460,11 @@ public class RaftNode {
         } catch (InterruptedException ignored) { }
 
         // Receive messages
-        PassiveMessageThread passiveMessageThread = new PassiveMessageThread(thisNode);
+        PassiveMessageThread passiveMessageThread = new PassiveMessageThread(thisNode, MESSAGE_PORT);
         passiveMessageThread.start();
+
+        PassiveMessageThread heartbeatThread = new PassiveMessageThread(thisNode, HEARTBEAT_PORT);
+        heartbeatThread.start();
 
         // Start messaging
         ActiveMessageThread activeMessageThread = new ActiveMessageThread(thisNode);

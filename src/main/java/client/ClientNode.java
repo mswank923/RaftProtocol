@@ -10,6 +10,7 @@ import misc.*;
 import Node.*;
 
 import static java.lang.Thread.sleep;
+import static misc.MessageType.APPEND_ENTRIES;
 
 public class ClientNode {
 
@@ -64,9 +65,15 @@ public class ClientNode {
      */
     public boolean sendMessage(Message message){
         try (Socket socket = new Socket()) {
+            int port;
+            if (message.getType().equals(APPEND_ENTRIES))
+                port = RaftNode.HEARTBEAT_PORT;
+            else
+                port = RaftNode.MESSAGE_PORT;
+
             System.out.println("Sending message to leader: " + leaderAddress.getHostAddress());
             // 1. Socket opens
-            InetSocketAddress destination = new InetSocketAddress(leaderAddress, RaftNode.MESSAGE_PORT);
+            InetSocketAddress destination = new InetSocketAddress(leaderAddress, port);
             socket.connect(destination, 300);
 
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());

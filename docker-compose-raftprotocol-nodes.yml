@@ -18,6 +18,7 @@ services:
     ports:
       - 6788
       - 6789
+      - 6790
     command:
       - /bin/bash
       - -c
@@ -39,6 +40,7 @@ services:
     ports:
       - 6788
       - 6789
+      - 6790
     command:
       - /bin/bash
       - -c
@@ -60,6 +62,7 @@ services:
     ports:
       - 6788
       - 6789
+      - 6790
     command:
       - /bin/bash
       - -c
@@ -81,6 +84,7 @@ services:
     ports:
       - 6788
       - 6789
+      - 6790
     command:
       - /bin/bash
       - -c
@@ -102,6 +106,7 @@ services:
     ports:
       - 6788
       - 6789
+      - 6790
     command:
       - /bin/bash
       - -c

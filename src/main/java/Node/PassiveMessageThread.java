@@ -13,9 +13,11 @@ import misc.*;
 public class PassiveMessageThread extends Thread {
 
     private RaftNode node;
+    private int port;
 
-    PassiveMessageThread(RaftNode node) {
+    PassiveMessageThread(RaftNode node, int port) {
         this.node = node;
+        this.port = port;
     }
 
     @Override
@@ -26,7 +28,7 @@ public class PassiveMessageThread extends Thread {
             String senderAddress = null;
             // 1. Socket opens
             try (
-                ServerSocket listener = new ServerSocket(RaftNode.MESSAGE_PORT);
+                ServerSocket listener = new ServerSocket(port);
                 Socket socket = listener.accept();
                 ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
                 ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())
