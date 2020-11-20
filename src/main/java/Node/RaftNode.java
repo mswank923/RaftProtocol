@@ -42,46 +42,97 @@ public class RaftNode {
     /**
      * Election timeout range (in seconds)
      */
-    static final int ELECTION_TIMEOUT_MIN = 5;
-    static final int ELECTION_TIMEOUT_MAX = 10;
+    private static final int ELECTION_TIMEOUT_MIN = 5;
+    private static final int ELECTION_TIMEOUT_MAX = 10;
 
     /**
-     * Seconds before an election to begin a countdown.
+     * Seconds before an election to begin a countdown. Set to positive value to enable countdown.
      */
-    static final int ELECTION_COUNTDOWN_START = 0;
+    private static final int ELECTION_COUNTDOWN_START = 0;
 
     /**
      * Name of the cache file to store keys & values in.
      */
-    static final String CACHE_FILENAME = "cache.txt";
+    private static final String CACHE_FILENAME = "cache.txt";
 
     /**
-     * Attributes
+     * Current term.
      */
-
-    private int term;                                 // Current term
-    private NodeType type;                            // Current type of node
-
-    private ArrayList<PeerNode> peerNodes;            // List of peers in the protocol, must be thread-safe
-    private PeerNode myLeader;                        // Current leader node
-    private InetAddress myAddress;                    // Local node's address
-    private InetAddress clientAddress;                // Client's address
-
-    private boolean hasVoted;                         // Voted status in current term
-    private int voteCount;                            // Vote tally in current term
-    private int totalVotes;                           // Number of vote responses received in current term
-
-    private Date lastLeaderUpdate;                    // Timestamp of last message from leader or candidate
-    private int electionTimeout;                      // Current term's election timeout in milliseconds
-
-    private boolean[] hasPrinted;                     // Whether we have printed countdown yet
-
-    private HashMap<String, Integer> cache;           // In-memory key-value store
-    private ConcurrentLinkedQueue<LogEntry> entries;  // Entries to send on heartbeat
-    private int responseCount;                        // Number of responses received before committing entry
+    private int term;
 
     /**
-     * Constructor for the local node, sets its initial values.
+     * Current type of node.
+     */
+    private NodeType type;
+
+    /**
+     * List of peers in the network. Writes to peers here must be thread-safe.
+     */
+    private ArrayList<PeerNode> peerNodes;
+
+    /**
+     * Current leader node. Initially null and set to null if this node is the leader.
+     */
+    private PeerNode myLeader;
+
+    /**
+     * Local node's address.
+     */
+    private InetAddress myAddress;
+
+    /**
+     * Address of the last client interacted with.
+     */
+    private InetAddress clientAddress;
+
+    /**
+     * Whether this node has voted in the current term.
+     */
+    private boolean hasVoted;
+
+    /**
+     * Votes for this CANDIDATE in the current election.
+     */
+    private int voteCount;
+
+    /**
+     * Total number of vote responses received in the current term/
+     */
+    private int totalVotes;
+
+    /**
+     * Timestamp of last message from leader or candidate
+     */
+    private Date lastLeaderUpdate;
+
+    /**
+     * Current term's election timeout in milliseconds
+     */
+    private int electionTimeout;
+
+    /**
+     * For each index in the array, indicates whether we have printed this countdown value yet.
+     * Reset inside of resetTimeout().
+     */
+    private boolean[] hasPrinted;
+
+    /**
+     * In-memory key-value store.
+     */
+    private HashMap<String, Integer> cache;
+
+    /**
+     * Thread-safe queue of entries to send on heartbeat.
+     */
+    private ConcurrentLinkedQueue<LogEntry> entries;
+
+    /**
+     * Number of responses to the last LogEntry received so far.
+     */
+    private int responseCount;
+
+    /**
+     * Constructor for the local node, sets initial values.
      */
     private RaftNode() {
         setType(NodeType.FOLLOWER);
@@ -134,9 +185,13 @@ public class RaftNode {
 
     /**
      * Update the address of the client last interacted with.
-     * @param address Address of the client.
+     * @param host Address of the client as a String.
      */
-    void setClientAddress(InetAddress address) { this.clientAddress = address; }
+    void setClientAddress(String host) {
+        try {
+            this.clientAddress = InetAddress.getByName(host);
+        } catch (UnknownHostException e) { e.printStackTrace(); }
+    }
 
     /**
      * Adds a newly created Node.PeerNode to our list of Peers. Assumes that the peer does not yet
@@ -154,13 +209,10 @@ public class RaftNode {
      * Add an entry to the outgoing queue to be sent to the other peer nodes.
      * @param entry The LogEntry to send.
      */
-    void enqueueLogEntry(LogEntry entry){
-        this.entries.add(entry);
-    }
+    void enqueueLogEntry(LogEntry entry) { this.entries.add(entry); }
 
     /**
-     * Add a vote to the current term's vote tally. Must consider false votes to check for tie
-     * cases.
+     * Add a vote to the current term's vote tally. Must count total votes to check for tie cases.
      */
     void countVote(boolean vote) {
         // Filter out lingering votes from printing
@@ -205,6 +257,10 @@ public class RaftNode {
      */
     int getTerm() { return this.term; }
 
+    /**
+     * Retrieve the voted status of the local node for this term.
+     * @return Votes status of the local node.
+     */
     boolean getHasVoted() { return this.hasVoted; }
 
     /**
@@ -258,10 +314,6 @@ public class RaftNode {
     void resetVotes() {
         voteCount = 0;
         totalVotes = 0;
-
-        // Set all peer hasVoted attributes to false
-        for (PeerNode peer : peerNodes)
-            peer.resetVote();
     }
 
     /**
@@ -281,7 +333,7 @@ public class RaftNode {
     /**
      * Send a heartbeat message to all peers.
      */
-    synchronized void sendHeartbeat() {
+    void sendHeartbeat() {
 
         LogEntry entry = entries.poll();
         if (entry == null) {
@@ -359,28 +411,28 @@ public class RaftNode {
      * LEADER.
      */
     synchronized void checkElectionResult() {
+        // Filter out lingering votes
         if (type.equals(NodeType.LEADER))
             return;
 
+        // Check the numbers
         int nodeCount = getNodeCount();
         int majority = (nodeCount / 2) + 1;
 
-        // Check for majority vote
         if (voteCount >= majority) {
             // This node was elected leader
             log("Elected!");
             setType(NodeType.LEADER);
-            hasVoted = false;
             myLeader = null;
-            randomizeElectionTimeout();
-            resetTimeout();
         } else if (totalVotes == nodeCount) {
             // Everyone has voted, we don't have majority. This means tie vote occurred
             setType(NodeType.FOLLOWER);
-            hasVoted = false;
-            randomizeElectionTimeout();
-            resetTimeout();
-        }
+        } else
+            return;
+
+        hasVoted = false;
+        randomizeElectionTimeout();
+        resetTimeout();
     }
 
     /**
@@ -400,10 +452,8 @@ public class RaftNode {
         // Request votes
         log("Requesting votes.");
         for (PeerNode peer : peerNodes) {
-            // Check to see if our election was cancelled
-            if (!this.type.equals(NodeType.CANDIDATE))
+            if (!this.type.equals(NodeType.CANDIDATE)) // Check to see if our election was cancelled
                 return;
-
             requestVote(peer);
         }
     }

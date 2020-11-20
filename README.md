@@ -27,6 +27,11 @@ docker-compose -f docker-compose-raftprotocol.yml up
 ```
 use `--build` to rebuild docker image
 
+Start up a client:
+```
+docker-compose -f docker-compose-raftprotocol-client.yml run --rm client
+```
+
 To attach the shell to a running container:
 ```
 docker exec -it <CONTAINER-NAME> bash

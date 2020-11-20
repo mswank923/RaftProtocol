@@ -13,6 +13,11 @@ import java.util.ArrayList;
 public class PassiveBroadcastThread extends Thread {
 
     /**
+     * Reference to the local node.
+     */
+    private RaftNode node;
+
+    /**
      * Size in bytes of the buffer to read incoming transmissions into.
      */
     private static final int BUFSIZE = 1024;
@@ -22,8 +27,6 @@ public class PassiveBroadcastThread extends Thread {
      * blocking all the threads constantly.
      */
     private ArrayList<String> addresses;
-
-    private RaftNode node;
 
     PassiveBroadcastThread(RaftNode node) {
         this.node = node;
@@ -53,8 +56,6 @@ public class PassiveBroadcastThread extends Thread {
      * @param message The address of a peer
      */
     private void process(String message) {
-        // message is the IP address that belongs to a peer node (or this node)
-
         // Prevent our own address from going through
         try {
             if (!InetAddress.getByName(message).getCanonicalHostName().contains("."))
@@ -71,6 +72,9 @@ public class PassiveBroadcastThread extends Thread {
         addresses.add(message);
     }
 
+    /**
+     * Method defining the life of the thread. Continuously reads data from the broadcast socket.
+     */
     @Override
     public void run() {
         try (DatagramSocket socket = new DatagramSocket(RaftNode.BROADCAST_PORT)) {

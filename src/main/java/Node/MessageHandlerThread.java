@@ -1,33 +1,58 @@
 package Node;
 import static misc.MessageType.APPEND_ENTRIES_RESPONSE;
 import static misc.MessageType.FIND_LEADER;
+import static misc.MessageType.VOTE_RESPONSE;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 
 import misc.LogEntry;
 import misc.LogOp;
 import misc.Message;
 import misc.MessageType;
 
+/**
+ * Class that handles the processing of an individual message.
+ */
 public class MessageHandlerThread extends Thread {
+
+    /**
+     * Reference to the local node.
+     */
     private RaftNode node;
+
+    /**
+     * Message that was received.
+     */
     private Message message;
+
+    /**
+     * Address of the sender of the message.
+     */
     private String senderAddress;
 
+    /**
+     * Constructor. Initializes values.
+     * @param node The local node.
+     * @param message The message received.
+     * @param senderAddress The address of the sender.
+     */
     MessageHandlerThread(RaftNode node, Message message, String senderAddress) {
         this.node = node;
         this.message = message;
         this.senderAddress = senderAddress;
     }
 
-    private void rudOperations(LogEntry entry){
-        LogOp operation = entry.getOp();
+    /**
+     * Process a received LogEntry as a RETRIEVE, UPDATE, or DELETE operation.
+     * @param entry The entry to process.
+     */
+    private void processLogEntry(LogEntry entry){
+        LogOp op = entry.getOp();
         String key = entry.getKey();
         int value = entry.getValue();
 
-        String message;
-        switch(operation){
+        String message = "";
+        switch (op) {
             case RETRIEVE:
                 try {
                     int retrievedValue = node.retrieveFromCache(key);      // Get value from cache
@@ -44,9 +69,9 @@ public class MessageHandlerThread extends Thread {
                 node.addToCache(key, value);
                 message = "Value of " + key + " updated to " + value;
 
-                if (node.getType().equals(NodeType.LEADER)) {
+                if (node.getType().equals(NodeType.LEADER)) { // Leader sends on the LogEntry
                     node.enqueueLogEntry(entry);
-                } else {
+                } else { // Nonleader writes response to the leader
                     Message updateResponse = new Message(APPEND_ENTRIES_RESPONSE, message);
                     node.sendMessage(node.getMyLeader().getAddress(), updateResponse);
                 }
@@ -59,14 +84,16 @@ public class MessageHandlerThread extends Thread {
                     message = "No value for " + key;
                 }
 
-                if (node.getType().equals(NodeType.LEADER)) {
+                if (node.getType().equals(NodeType.LEADER)) { // Leader sends on the LogEntry
                     node.enqueueLogEntry(entry);
-                } else {
+                } else { // Nonleader writes response to the leader
                     Message deleteResponse = new Message(APPEND_ENTRIES_RESPONSE, message);
                     node.sendMessage(node.getMyLeader().getAddress(), deleteResponse);
                 }
                 break;
         }
+
+        node.log(message);
     }
 
     /**
@@ -75,28 +102,26 @@ public class MessageHandlerThread extends Thread {
      * @param sourceAddress The address of the source (sender) of the message.
      */
     private void processMessage(Message message, String sourceAddress) {
-
         MessageType type = message.getType();
         Object data = message.getData();
 
-        if (type.equals(FIND_LEADER)) {
-            System.out.println("Asked for leader. Responding...");
-            try {
-                node.setClientAddress(InetAddress.getByName(sourceAddress));
-                Message msg;
-                if (node.getType().equals(NodeType.LEADER)) // ff I am the leader send my address
-                    msg = new Message(FIND_LEADER, node.getMyAddress());
-                else // else send my leader's address
-                    msg = new Message(FIND_LEADER, node.getMyLeader().getAddress());
-
-                node.sendMessage(node.getClientAddress(), msg);
-            } catch (UnknownHostException e) { e.printStackTrace(); }
-            return;
-        }
-
         PeerNode sourcePeer;
+        Message responseMessage;
 
         switch (type) {
+            case FIND_LEADER:
+                node.log("Found client");
+                node.setClientAddress(sourceAddress);
+
+                // Find the leader
+                InetAddress leaderAddress = node.getType().equals(NodeType.LEADER) ?
+                    node.getMyAddress() : node.getMyLeader().getAddress();
+
+                // Tell the client
+                responseMessage = new Message(FIND_LEADER, leaderAddress);
+                node.sendMessage(node.getClientAddress(), responseMessage);
+
+                break;
             case VOTE_REQUEST:
                 if (!(data instanceof Integer))
                     throw new RuntimeException("Wrong data type for VOTE_REQUEST!");
@@ -114,20 +139,22 @@ public class MessageHandlerThread extends Thread {
                         vote = !node.getHasVoted();
                 }
 
-                Message response;
                 if (vote) {
                     node.setHasVoted(true);
                     node.setTerm(peerTerm);
                     node.log("Voted!");
-                    response = new Message(MessageType.VOTE_RESPONSE, true);
-                } else {
-                    response = new Message(MessageType.VOTE_RESPONSE, false);
                 }
+
+                responseMessage = new Message(VOTE_RESPONSE, vote);
 
                 sourcePeer = node.getPeer(sourceAddress);
                 if (sourcePeer != null && !sourcePeer.isAlive())
                     sourcePeer.alive();
-                node.sendMessage(sourcePeer.getAddress(), response);
+
+                if (sourcePeer == null)
+                    throw new RuntimeException("Received VOTE_REQUEST from unknown peer!");
+                else
+                    node.sendMessage(sourcePeer.getAddress(), responseMessage);
                 break;
 
             case VOTE_RESPONSE:
@@ -146,19 +173,18 @@ public class MessageHandlerThread extends Thread {
                 if (sourcePeer != null && !sourcePeer.isAlive())
                     sourcePeer.alive();
 
-                sourcePeer.voted();
-
                 node.checkElectionResult();
                 break;
 
             case APPEND_ENTRIES:
                 node.resetTimeout();
-                if (data == null) { // null indicates this was just a heartbeat
-                    sourcePeer = node.getPeer(sourceAddress);
-                    if (sourcePeer != null && !sourcePeer.isAlive())
+
+                sourcePeer = node.getPeer(sourceAddress);
+                if (sourcePeer != null) {
+                    if (!sourcePeer.isAlive())
                         sourcePeer.alive();
 
-                    if (sourcePeer.equals(node.getMyLeader())) { // From current leader
+                    if (sourcePeer.equals(node.getMyLeader())) {// From current leader
                         node.log("Heard heartbeat.");
                     } else { // From new leader (indicates new term)
                         node.log("New leader!");
@@ -166,22 +192,25 @@ public class MessageHandlerThread extends Thread {
                         node.setHasVoted(false);
                         node.randomizeElectionTimeout();
                     }
+                }
 
-                    // If we are a candidate we need to stop our election
+                // Process the data
+                if (data == null) { // A heartbeat from the leader
                     if (!node.getType().equals(NodeType.FOLLOWER))
                         node.setType(NodeType.FOLLOWER);
 
-                    Message nullResponse = new Message(APPEND_ENTRIES_RESPONSE, null);
-                    //node.sendMessage(sourcePeer.getAddress(), nullResponse);
+                    // null response is not necessary
+//                    responseMessage = new Message(APPEND_ENTRIES_RESPONSE, null);
+//                    if (sourcePeer == null)
+//                        throw new RuntimeException("Received heartbeat from unknown peer!");
+//                    else
+//                        node.sendMessage(sourcePeer.getAddress(), responseMessage);
+
                 } else if (data instanceof LogEntry) {
-                    if (node.getType().equals(NodeType.LEADER))
-                        try {
-                            node.setClientAddress(InetAddress.getByName(sourceAddress));
-                        } catch (UnknownHostException e) { e.printStackTrace(); }
+                    node.setClientAddress(sourceAddress);
 
                     LogEntry entry = (LogEntry) data;
-                    node.log("Received LogEntry of type " + entry.getOp().toString());
-                    rudOperations(entry);
+                    processLogEntry(entry);
                 } else {
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES!");
                 }
@@ -195,10 +224,10 @@ public class MessageHandlerThread extends Thread {
                 if (!(data instanceof String))
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES_RESPONSE!");
 
-                String msg = (String) data;
-                node.log("Received response. Checking majority.");
+                String text = (String) data;
+                node.log("Received response.");
                 node.incrementResponseCount();
-                node.checkResponseMajority(msg);
+                node.checkResponseMajority(text);
                 break;
 
             case COMMIT:
@@ -208,6 +237,10 @@ public class MessageHandlerThread extends Thread {
         }
     }
 
+    /**
+     * Method defining the lifetime of the thread. The thread processes a single message and then
+     * concludes itself.
+     */
     @Override
     public void run() {
         if (message != null && senderAddress != null)
