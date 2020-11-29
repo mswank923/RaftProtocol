@@ -1,0 +1,8 @@
+TODO:
+1. Implement Consensus
+    - Nodes maintain same consistent values (already done)
+    - When offline noes come back online, their values should
+        be consistent with the majority of nodes
+
+2. Idea:
+    - When sending a heartbeat, the leader sends his most recent cache
