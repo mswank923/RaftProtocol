@@ -345,9 +345,19 @@ public class RaftNode {
 
         Message message = new Message(MessageType.APPEND_ENTRIES, entry);
 
-        for (PeerNode peer : peerNodes)
-            if (!sendMessage(peer.getAddress(), message) && peer.isAlive())
+        for (PeerNode peer : peerNodes) {
+            boolean success = sendMessage(peer.getAddress(), message);
+            if (!success && peer.isAlive()) { // Peer just went offline
                 peer.dead();
+            } else if (success && !peer.isAlive()) { // Peer has been revived
+                peer.alive();
+                Message cacheMessage = new Message(APPEND_ENTRIES, cache);
+                randomDelay();
+                log("Sending updated cache to revived peer.");
+                boolean success2 = sendMessage(peer.getAddress(), cacheMessage);
+                log("Success: " + success2);
+            }
+        }
     }
 
     /**
@@ -376,7 +386,10 @@ public class RaftNode {
             else
                 log("Beginning election in " + remainingSecs + " seconds.");
         }
-        return now - lastLeaderUpdate.getTime() > electionTimeout;
+        boolean missing = now - lastLeaderUpdate.getTime() > electionTimeout;
+        if (missing && myLeader != null)
+            myLeader.dead();
+        return missing;
     }
 
     /**
@@ -459,6 +472,16 @@ public class RaftNode {
     }
 
     /**
+     * Add a random amount of delay up to 500 milliseconds.
+     */
+    private void randomDelay() {
+        try {
+            Random random = new Random();
+            sleep(random.nextInt(501));
+        } catch (InterruptedException ignored) { }
+    }
+
+    /**
      * Open a socket and send a message. Returns success status.
      * @param address Destination address.
      * @param message Message to send.
@@ -468,10 +491,7 @@ public class RaftNode {
         int port = message.getType().equals(APPEND_ENTRIES) ? HEARTBEAT_PORT : MESSAGE_PORT;
         if (message.getType().equals(APPEND_ENTRIES_RESPONSE) ||
             message.getType().equals(VOTE_RESPONSE)) {
-            try {
-                Random random = new Random();
-                sleep(random.nextInt(501));
-            } catch (InterruptedException ignored) { }
+            randomDelay();
         }
 
         try (Socket socket = new Socket()) {
@@ -519,6 +539,12 @@ public class RaftNode {
      * @param value The value to add.
      */
     void addToCache(String key, int value) { cache.put(key, value); }
+
+    /**
+     * Replace this node's existing cache with the new cache.
+     * @param newCache The new cache with the most recent values.
+     */
+    void replaceCache(HashMap<String, Integer> newCache) { this.cache = newCache; }
 
     /**
      * Commit the cache in local memory to a file format for persistent data.
@@ -590,8 +616,9 @@ public class RaftNode {
 
         // Main loop performs constant checking based on local node's type
         while (true) {
-            if (thisNode.type.equals(NodeType.FOLLOWER) && thisNode.leaderIsMissing())
-                    thisNode.leaderElection();
+            if (thisNode.type.equals(NodeType.FOLLOWER) && thisNode.leaderIsMissing()) {
+                thisNode.leaderElection();
+            }
 
             // Added delay so as not to hog the synchronized methods
             try {

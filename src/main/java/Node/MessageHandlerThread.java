@@ -5,6 +5,7 @@ import static misc.MessageType.VOTE_RESPONSE;
 
 import java.net.InetAddress;
 
+import java.util.HashMap;
 import misc.LogEntry;
 import misc.LogOp;
 import misc.Message;
@@ -110,7 +111,7 @@ public class MessageHandlerThread extends Thread {
 
         switch (type) {
             case FIND_LEADER:
-                node.log("Found client");
+                node.log("Found client.");
                 node.setClientAddress(sourceAddress);
 
                 // Find the leader
@@ -211,6 +212,14 @@ public class MessageHandlerThread extends Thread {
 
                     LogEntry entry = (LogEntry) data;
                     processLogEntry(entry);
+                } else if (data instanceof HashMap) { // New cache from leader
+                    node.log("Updating cache with data from leader.");
+
+                    @SuppressWarnings("unchecked") // Suppress unchecked cast warning
+                    HashMap<String, Integer> newCache = (HashMap<String, Integer>) data;
+
+                    node.replaceCache(newCache);
+                    node.commitCacheToFile();
                 } else {
                     throw new RuntimeException("Wrong data type for APPEND_ENTRIES!");
                 }

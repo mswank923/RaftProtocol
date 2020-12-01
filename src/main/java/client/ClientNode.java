@@ -28,11 +28,18 @@ public class ClientNode {
     private InetAddress leaderAddress;
 
     /**
+     * If non-null, a message is to be sent to the leader but is being held until the leader is
+     * found.
+     */
+    private Message lingeringMessage;
+
+    /**
      * Constructor. Initializes values.
      */
     private ClientNode() {
         this.peers = new ArrayList<>();
         this.leaderAddress = null;
+        this.lingeringMessage = null;
     }
 
     /**
@@ -60,13 +67,19 @@ public class ClientNode {
 
             System.out.println("Finding leader...");
 
-            if (leaderAddress == null)
+            if (leaderAddress == null) { // Leader has not been found yet
                 leaderAddress = InetAddress.getByName(peers.get(0));
+            } else { // Leader has died and we are finding the new leader
+                String peer = peers.get(0);
+                if (peer.equals(leaderAddress.getHostAddress()))
+                    peer = peers.get(1);
+                leaderAddress = InetAddress.getByName(peer);
+            }
 
             // Send message to the address
             Message findLeader = new Message(MessageType.FIND_LEADER, null);
             sendMessage(findLeader);
-        } catch(IndexOutOfBoundsException | InterruptedException | UnknownHostException ignored) { }
+        } catch (IndexOutOfBoundsException | InterruptedException | UnknownHostException ignored) { }
     }
 
     /**
@@ -74,7 +87,7 @@ public class ClientNode {
      * @param message The message to send.
      * @return Success status.
      */
-    boolean sendMessage(Message message){
+    synchronized boolean sendMessage(Message message){
         try (Socket socket = new Socket()) {
             int port = message.getType().equals(APPEND_ENTRIES) ?
                 RaftNode.HEARTBEAT_PORT : RaftNode.MESSAGE_PORT;
@@ -112,6 +125,10 @@ public class ClientNode {
                     throw new RuntimeException("Wrong data type for FIND_LEADER");
                 leaderAddress = (InetAddress) data;
                 System.out.println("Found the leader.");
+                if (lingeringMessage != null) {
+                    sendMessage(lingeringMessage);
+                    lingeringMessage = null;
+                }
                 break;
             case APPEND_ENTRIES_RESPONSE: // Receiving entries response
                 if (!(data instanceof String))
@@ -219,7 +236,7 @@ public class ClientNode {
             if (!success) { // if sending fails, find leader & try again
                 System.out.println("Connection to leader failed, finding leader again...");
                 thisNode.findLeader();
-                thisNode.sendMessage(message);
+                thisNode.lingeringMessage = message;
             }
         }
 
