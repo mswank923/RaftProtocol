@@ -45,8 +45,16 @@ class PeerNode {
      */
     void dead() { this.alive = false; }
 
+    /**
+     * Retrieve whether this peer is in consensus with the others.
+     * @return Consensus state.
+     */
     boolean getConsensus() { return this.consensus; }
 
+    /**
+     * Set the state of consensus of this peer.
+     * @param consensus The new state of consensus.
+     */
     void setConsensus(boolean consensus) { this.consensus = consensus; }
 
     /**
