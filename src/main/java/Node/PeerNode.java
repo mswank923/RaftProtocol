@@ -19,11 +19,17 @@ class PeerNode {
     private boolean alive;
 
     /**
+     * Whether or not this node is in consensus.
+     */
+    private boolean consensus;
+
+    /**
      * Constructor. Initializes values.
      * @param address The address (as String) of the peer picked up from broadcast.
      */
     PeerNode(String address) {
         this.alive = true;
+        this.consensus = true;
         try {
             this.address = InetAddress.getByName(address);
         } catch (UnknownHostException e) { e.printStackTrace(); }
@@ -38,6 +44,10 @@ class PeerNode {
      * Indicate that this peer is known to be nonactive.
      */
     void dead() { this.alive = false; }
+
+    boolean getConsensus() { return this.consensus; }
+
+    void setConsensus(boolean consensus) { this.consensus = consensus; }
 
     /**
      * Retrieve the address of this peer.

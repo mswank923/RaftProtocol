@@ -346,16 +346,22 @@ public class RaftNode {
         Message message = new Message(MessageType.APPEND_ENTRIES, entry);
 
         for (PeerNode peer : peerNodes) {
-            boolean success = sendMessage(peer.getAddress(), message);
-            if (!success && peer.isAlive()) { // Peer just went offline
-                peer.dead();
-            } else if (success && !peer.isAlive()) { // Peer has been revived
-                peer.alive();
+            if (peer.getConsensus()) {
+                boolean success = sendMessage(peer.getAddress(), message);
+                if (!success && peer.isAlive()) { // Peer just went offline
+                    peer.dead();
+                } else if (success && !peer.isAlive()) { // Peer has been revived
+                    peer.alive();
+                    peer.setConsensus(false);
+                }
+            } else {
                 Message cacheMessage = new Message(APPEND_ENTRIES, cache);
-                randomDelay();
                 log("Sending updated cache to revived peer.");
-                boolean success2 = sendMessage(peer.getAddress(), cacheMessage);
-                log("Success: " + success2);
+
+                //try { sleep(500); } catch (InterruptedException ignored) { } // Delay
+
+                sendMessage(peer.getAddress(), cacheMessage);
+                peer.setConsensus(true);
             }
         }
     }

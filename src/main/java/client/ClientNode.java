@@ -234,7 +234,7 @@ public class ClientNode {
             Message message = new Message(MessageType.APPEND_ENTRIES, entry);
             boolean success = thisNode.sendMessage(message);
             if (!success) { // if sending fails, find leader & try again
-                System.out.println("Connection to leader failed, finding leader again...");
+                System.out.println("Connection to leader failed.");
                 thisNode.findLeader();
                 thisNode.lingeringMessage = message;
             }
